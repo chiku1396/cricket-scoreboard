@@ -55,9 +55,10 @@ onAuthStateChanged(auth, user => {
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
 
-  document.getElementById("awardsBox").style.display = user ? "block" : "none";
-  resetAwardsBtn.style.display = user ? "block" : "none";
+  document.getElementById("awardsBox").style.display = admin ? "block" : "none";
+  resetAwardsBtn.style.display = admin ? "block" : "none";
 
+  // 🔥 IMPORTANT FIX
   renderTable(playersCache, admin);
 });
 window.resetAwards = async function () {
@@ -129,12 +130,12 @@ function renderTable(players, isAdmin) {
 
   players.forEach((p, i) => {
 
-    const actions = isAdmin
-      ? `
-        <button onclick="updateRun('${p.id}',2)">+2</button>
-        <button onclick="updateRun('${p.id}',-3)">-3</button>
-      `
-      : "";
+const actions = admin
+  ? `
+    <button onclick="updateRun('${p.id}',2)">+2</button>
+    <button onclick="updateRun('${p.id}',-3)">-3</button>
+  `
+  : "";
 
     table.innerHTML += `
       <tr>

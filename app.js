@@ -60,11 +60,11 @@ onAuthStateChanged(auth, user => {
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
 
-  /* ✅ FIX 1: awards box now visible only for admin */
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
-
-  /* reset button */
   resetAwardsBtn.style.display = user ? "block" : "none";
+
+  // 🔥 IMPORTANT: force correct render after login/logout
+  renderTable(playersCache, admin);
 });
 window.resetAwards = async function () {
   if (!admin) return;
@@ -104,16 +104,19 @@ window.resetAwards = async function () {
   }
 };
 /* PLAYERS */
+/* PLAYERS */
 onSnapshot(colRef, snap => {
+  playersCache = [];
+
+  snap.forEach(d => {
+    playersCache.push({ id: d.id, ...d.data() });
+  });
+
+  renderTable(playersCache, admin);
+});
+function renderTable(players, isAdmin) {
   const table = document.getElementById("table");
   table.innerHTML = "";
-
-  let players = [];
-
-  snap.forEach(d => players.push({ id: d.id, ...d.data() }));
-  playersCache = players;
-
-  players.sort((a, b) => b.runs - a.runs);
 
   const batsman = document.getElementById("batsman");
   const bowler = document.getElementById("bowler");
@@ -124,10 +127,14 @@ onSnapshot(colRef, snap => {
   catcher.innerHTML =
     `<option disabled selected>Select</option>`;
 
+  if (!players || players.length === 0) return;
+
+  players.sort((a, b) => b.runs - a.runs);
+
   players.forEach((p, i) => {
 
-    /* ✅ FIX 2: ensure admin buttons always render correctly */
-    const actions = admin
+    // 🔥 ALWAYS RELIABLE ADMIN CHECK
+    const actions = isAdmin
       ? `
         <button onclick="updateRun('${p.id}',2)">+2</button>
         <button onclick="updateRun('${p.id}',-3)">-3</button>
@@ -148,8 +155,7 @@ onSnapshot(colRef, snap => {
     bowler.innerHTML += opt;
     catcher.innerHTML += opt;
   });
-});
-
+}
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
   const p = playersCache.find(x => x.id === id);

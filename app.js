@@ -404,6 +404,5 @@ window.addEventListener("load", async () => {
 
   const input = document.getElementById("matchDate");
   if (input) input.value = formatted;
-
   await loadSelectedMatch();
 });

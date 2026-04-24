@@ -32,7 +32,6 @@ const auth = getAuth(app);
 
 const colRef = collection(db, "players");
 
-/* STATE */
 let admin = false;
 let playersCache = [];
 
@@ -60,43 +59,74 @@ onAuthStateChanged(auth, user => {
 
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
+
+  /* ✅ FIX 1: awards box now visible only for admin */
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
+
+  /* reset button */
   resetAwardsBtn.style.display = user ? "block" : "none";
 });
+window.resetAwards = async function () {
+  if (!admin) return;
 
-/* 🔥 FIRESTORE LIVE PLAYERS (ONLY SOURCE OF TRUTH) */
+  try {
+    let errors = [];
+
+    // 1️⃣ Reset awards
+    try {
+      await setDoc(awardRef, { list: [] });
+    } catch (e) {
+      errors.push("awards");
+      console.error("Awards reset error:", e);
+    }
+
+    // 2️⃣ Reset winner
+    try {
+      await setDoc(winnerRef, { winner: "" });
+    } catch (e) {
+      errors.push("winner");
+      console.error("Winner reset error:", e);
+    }
+
+    // 3️⃣ UI clear (always safe)
+    document.getElementById("awardFeed").innerHTML = "";
+
+    // 4️⃣ Show correct message
+    if (errors.length > 0) {
+      alert("Reset completed with minor issues: " + errors.join(", "));
+    } else {
+      alert("Reset successful");
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("Reset failed completely");
+  }
+};
+/* PLAYERS */
 onSnapshot(colRef, snap => {
-  const players = [];
-
-  snap.forEach(d => {
-    players.push({ id: d.id, ...d.data() });
-  });
-
-  playersCache = players;
-
-  renderTable(players);
-});
-
-/* 🔥 CLEAN RENDER SYSTEM */
-function renderTable(players) {
-  if (!players) return;
-
   const table = document.getElementById("table");
   table.innerHTML = "";
 
+  let players = [];
+
+  snap.forEach(d => players.push({ id: d.id, ...d.data() }));
+  playersCache = players;
+
+  players.sort((a, b) => b.runs - a.runs);
+
   const batsman = document.getElementById("batsman");
   const bowler = document.getElementById("bowler");
-  const catcher = document.getElementById("catcher");
+  const catcher = document.getElementById("catch");
 
   batsman.innerHTML =
   bowler.innerHTML =
   catcher.innerHTML =
     `<option disabled selected>Select</option>`;
 
-  players.sort((a, b) => b.runs - a.runs);
-
   players.forEach((p, i) => {
 
+    /* ✅ FIX 2: ensure admin buttons always render correctly */
     const actions = admin
       ? `
         <button onclick="updateRun('${p.id}',2)">+2</button>
@@ -118,10 +148,10 @@ function renderTable(players) {
     bowler.innerHTML += opt;
     catcher.innerHTML += opt;
   });
-}
+});
 
 /* UPDATE RUN */
-window.updateRun = async function (id, val) {
+window.updateRun = async (id, val) => {
   const p = playersCache.find(x => x.id === id);
   if (!p) return;
 
@@ -169,8 +199,6 @@ onSnapshot(awardRef, snap => {
   snap.data().list.forEach(item => {
     const div = document.createElement("div");
     div.innerText = item;
-    div.style.color = "gold";
-    div.style.fontWeight = "bold";
     feed.appendChild(div);
   });
 });
@@ -186,7 +214,7 @@ onSnapshot(winnerRef, snap => {
 
   const data = snap.data();
 
-  if (!data.winner) {
+  if (!data.winner || data.winner.trim() === "") {
     banner.innerText = "";
     return;
   }
@@ -200,17 +228,9 @@ window.setWinner = async function () {
 
   if (!admin) return alert("Only admin");
 
+  if (!name || name.trim() === "") return;
+
   await setDoc(winnerRef, {
     winner: name.trim()
   }, { merge: true });
-};
-
-/* RESET */
-window.resetAwards = async function () {
-  if (!admin) return;
-
-  await setDoc(awardRef, { list: [] });
-  await setDoc(winnerRef, { winner: "" });
-
-  document.getElementById("awardFeed").innerHTML = "";
 };

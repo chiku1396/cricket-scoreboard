@@ -62,32 +62,25 @@ onAuthStateChanged(auth, user => {
   logoutBtn.style.display = user ? "block" : "none";
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
   resetAwardsBtn.style.display = user ? "block" : "none";
-
-  // 🔥 FORCE RE-RENDER SAFELY
-  renderTable(playersCache);
 });
 
-/* RESET */
-window.resetAwards = async function () {
-  if (!admin) return;
-
-  await setDoc(awardRef, { list: [] });
-  await setDoc(winnerRef, { winner: "" });
-
-  document.getElementById("awardFeed").innerHTML = "";
-};
-
-/* FIRESTORE PLAYERS */
+/* 🔥 FIRESTORE LIVE PLAYERS (ONLY SOURCE OF TRUTH) */
 onSnapshot(colRef, snap => {
-  playersCache = [];
+  const players = [];
 
-  snap.forEach(d => playersCache.push({ id: d.id, ...d.data() }));
+  snap.forEach(d => {
+    players.push({ id: d.id, ...d.data() });
+  });
 
-  renderTable(playersCache);
+  playersCache = players;
+
+  renderTable(players);
 });
 
-/* 🔥 SINGLE RENDER SYSTEM (IMPORTANT) */
+/* 🔥 CLEAN RENDER SYSTEM */
 function renderTable(players) {
+  if (!players) return;
+
   const table = document.getElementById("table");
   table.innerHTML = "";
 
@@ -210,4 +203,14 @@ window.setWinner = async function () {
   await setDoc(winnerRef, {
     winner: name.trim()
   }, { merge: true });
+};
+
+/* RESET */
+window.resetAwards = async function () {
+  if (!admin) return;
+
+  await setDoc(awardRef, { list: [] });
+  await setDoc(winnerRef, { winner: "" });
+
+  document.getElementById("awardFeed").innerHTML = "";
 };

@@ -33,7 +33,6 @@ const auth = getAuth(app);
 
 /* ================= COLLECTIONS ================= */
 const playersCol = collection(db, "players");
-const matchCol = collection(db, "matches");
 
 const awardRef = doc(db, "settings", "awards");
 const winnerRef = doc(db, "settings", "match");
@@ -41,24 +40,12 @@ const winnerRef = doc(db, "settings", "match");
 /* ================= STATE ================= */
 let admin = false;
 let playersCache = [];
-let currentMode = "live"; // live | history
 
 /* ================= DATE KEY ================= */
 function getDateKey(dateStr) {
+  if (!dateStr) return null;
   const [yyyy, mm, dd] = dateStr.split("-");
   return `${parseInt(dd)}-${parseInt(mm)}-${yyyy.slice(-2)}`;
-}
-
-/* ================= INIT DATE ================= */
-function setToday() {
-  const input = document.getElementById("matchDate");
-
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const dd = String(today.getDate()).padStart(2, "0");
-
-  if (input) input.value = `${yyyy}-${mm}-${dd}`;
 }
 
 /* ================= LOGIN ================= */
@@ -78,36 +65,37 @@ window.toggleLogin = () => {
 onAuthStateChanged(auth, user => {
   admin = !!user;
 
-  const adminBtn = document.getElementById("adminBtn");
-  const logoutBtn = document.getElementById("logoutBtn");
-  const awardsBox = document.getElementById("awardsBox");
-  const resetBtn = document.getElementById("resetAwardsBtn");
-
-  if (adminBtn) adminBtn.style.display = user ? "none" : "block";
-  if (logoutBtn) logoutBtn.style.display = user ? "block" : "none";
-  if (awardsBox) awardsBox.style.display = user ? "block" : "none";
-  if (resetBtn) resetBtn.style.display = user ? "block" : "none";
+  document.getElementById("adminBtn").style.display = user ? "none" : "block";
+  document.getElementById("logoutBtn").style.display = user ? "block" : "none";
+  document.getElementById("awardsBox").style.display = user ? "block" : "none";
+  document.getElementById("resetAwardsBtn").style.display = user ? "block" : "none";
 
   renderTable(playersCache);
 });
 
-/* ================= REMOVE LIVE SNAPSHOT CONFLICT ================= */
-/* (IMPORTANT: no onSnapshot(playersCol)) */
+/* ================= PLAYERS (ONLY LIVE CACHE) ================= */
+onSnapshot(playersCol, snap => {
+  playersCache = [];
+  snap.forEach(d => playersCache.push({ id: d.id, ...d.data() }));
+  renderTable(playersCache);
+});
 
 /* ================= RENDER TABLE ================= */
 function renderTable(players) {
   const table = document.getElementById("table");
-  table.innerHTML = "";
-
   const batsman = document.getElementById("batsman");
   const bowler = document.getElementById("bowler");
   const catcher = document.getElementById("catch");
 
+  if (!table) return;
+
+  table.innerHTML = "";
+
   if (batsman) {
     batsman.innerHTML =
-    bowler.innerHTML =
-    catcher.innerHTML =
-      `<option disabled selected>Select</option>`;
+      bowler.innerHTML =
+      catcher.innerHTML =
+        `<option disabled selected>Select</option>`;
   }
 
   if (!players || players.length === 0) return;
@@ -116,13 +104,12 @@ function renderTable(players) {
 
   players.forEach((p, i) => {
 
-    const actions =
-      (admin && currentMode === "live")
-        ? `
-          <button onclick="updateRun('${p.id}',2)">+2</button>
-          <button onclick="updateRun('${p.id}',-3)">-3</button>
-        `
-        : "";
+    const actions = admin
+      ? `
+        <button onclick="updateRun('${p.id}',2)">+2</button>
+        <button onclick="updateRun('${p.id}',-3)">-3</button>
+      `
+      : "";
 
     table.innerHTML += `
       <tr>
@@ -147,6 +134,46 @@ window.updateRun = async function (id, val) {
 
   await updateDoc(doc(db, "players", id), {
     runs: p.runs + val
+  });
+};
+
+/* ================= LOAD MATCH ================= */
+window.loadSelectedMatch = async function () {
+  const dateInput = document.getElementById("matchDate").value;
+
+  const table = document.getElementById("table");
+  const feed = document.getElementById("awardFeed");
+
+  // ALWAYS CLEAR FIRST (IMPORTANT FIX)
+  table.innerHTML = "";
+  feed.innerHTML = "";
+  banner.innerText = "";
+
+  if (!dateInput) return;
+
+  const key = getDateKey(dateInput);
+
+  const snap = await getDoc(doc(db, "matches", key));
+
+  if (!snap.exists()) {
+    table.innerHTML =
+      `<tr><td colspan="4">No data for this date</td></tr>`;
+    return;
+  }
+
+  const data = snap.data();
+
+  renderTable(data.players || []);
+
+  banner.innerText =
+    data.winner ? "🏆 Winner: " + data.winner : "";
+
+  (data.awards || []).forEach(a => {
+    const div = document.createElement("div");
+    div.innerText = a;
+    div.style.color = "gold";
+    div.style.fontWeight = "bold";
+    feed.appendChild(div);
   });
 };
 
@@ -177,56 +204,44 @@ window.saveMatch = async function () {
   alert("Match saved ✅");
 };
 
-/* ================= LOAD MATCH ================= */
-window.loadSelectedMatch = async function () {
-  const dateInput = document.getElementById("matchDate").value;
-  if (!dateInput) return;
+/* ================= AWARDS ================= */
+window.giveSingleAward = async function (type, points) {
+  const id = document.getElementById(type).value;
+  if (!id) return;
 
-  const key = getDateKey(dateInput);
+  const p = playersCache.find(x => x.id === id);
 
-  const snap = await getDoc(doc(db, "matches", key));
-
-  const table = document.getElementById("table");
-  const feed = document.getElementById("awardFeed");
-  const banner = document.getElementById("winnerBanner");
-
-  table.innerHTML = "";
-  feed.innerHTML = "";
-  banner.innerText = "";
-
-  if (!snap.exists()) {
-    table.innerHTML =
-      `<tr><td colspan="4">No data for this date</td></tr>`;
-    currentMode = "history";
-    return;
-  }
-
-  const data = snap.data();
-
-  currentMode = "history";
-
-  renderTable(data.players || []);
-
-  banner.innerText =
-    data.winner ? "🏆 Winner: " + data.winner : "";
-
-  (data.awards || []).forEach(a => {
-    const div = document.createElement("div");
-    div.innerText = a;
-    div.style.color = "gold";
-    div.style.fontWeight = "bold";
-    feed.appendChild(div);
+  await updateDoc(doc(db, "players", id), {
+    runs: p.runs + points
   });
-};
 
-/* ================= DATE CHANGE ================= */
-document.getElementById("matchDate")
-  .addEventListener("change", loadSelectedMatch);
+  const snap = await getDoc(awardRef);
+  let list = snap.exists() ? snap.data().list || [] : [];
+
+  const label =
+    type === "batsman"
+      ? "🏏 Batsman of the Day"
+      : type === "bowler"
+      ? "🎯 Bowler of the Day"
+      : "🧤 Catch of the Day";
+
+  list.push(`${label}: ${p.name} +${points}`);
+
+  await setDoc(awardRef, { list });
+};
 
 /* ================= INIT ================= */
 window.addEventListener("load", () => {
-  setToday();
+  const input = document.getElementById("matchDate");
+
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+
+  if (input) input.value = `${yyyy}-${mm}-${dd}`;
+
   setTimeout(() => {
     loadSelectedMatch();
-  }, 300);
+  }, 400);
 });

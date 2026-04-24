@@ -29,17 +29,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-window.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("date").value = getTodayDate();
-});
-//document.getElementById("date").addEventListener("change", loadMatchByDate);
-document.getElementById("date").addEventListener("change", () => {
-  const date = document.getElementById("date").value;
+// window.addEventListener("DOMContentLoaded", () => {
+//   document.getElementById("date").value = getTodayDate();
+// });
+// //document.getElementById("date").addEventListener("change", loadMatchByDate);
+// document.getElementById("date").addEventListener("change", () => {
+//   const date = document.getElementById("date").value;
 
-  if (!date) return; // very important safety check
+//   if (!date) return; // very important safety check
 
-  loadMatchByDate(date);
-});
+//   loadMatchByDate(date);
+// });
 const colRef = collection(db, "players");
 const matchesRef = collection(db, "matches");
 

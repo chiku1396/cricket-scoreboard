@@ -29,7 +29,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-
+document.getElementById("date").addEventListener("change", loadMatchByDate);
 const colRef = collection(db, "players");
 const matchesRef = collection(db, "matches");
 
@@ -285,5 +285,58 @@ function setTodayDate() {
 }
 window.onload = () => {
   setTodayDate();
-  //loadMatchDates(); // if you already have dropdown/history
+  loadMatchByDate(); // if you already have dropdown/history
+};
+import { doc, getDoc } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+window.loadMatchByDate = async function () {
+  const date = document.getElementById("date").value;
+
+  if (!date) return;
+
+  const snap = await getDoc(doc(db, "matches", date));
+
+  // 🧹 CLEAR UI FIRST
+  const table = document.getElementById("table");
+  const feed = document.getElementById("awardFeed");
+  const banner = document.getElementById("winnerBanner");
+
+  table.innerHTML = "";
+  feed.innerHTML = "";
+  banner.style.display = "none";
+  banner.innerText = "";
+
+  // ❌ IF NO MATCH FOUND
+  if (!snap.exists()) {
+    table.innerHTML = "<tr><td colspan='4'>No match found for this date</td></tr>";
+    return;
+  }
+
+  const data = snap.data();
+
+  // 🏆 WINNER
+  if (data.winner) {
+    banner.style.display = "block";
+    banner.innerText = "🏆 Winner: " + data.winner;
+  }
+
+  // 🏏 SCOREBOARD
+  data.players?.forEach((p, i) => {
+    table.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${p.name}</td>
+        <td>${p.runs}</td>
+        <td></td>
+      </tr>
+    `;
+  });
+
+  // 🎖 AWARDS
+  data.awards?.forEach(a => {
+    const div = document.createElement("div");
+    div.innerText = a;
+    feed.appendChild(div);
+  });
 };

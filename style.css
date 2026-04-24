@@ -1,0 +1,183 @@
+body {
+  font-family: 'Segoe UI';
+  background: #0f172a;
+  color: white;
+  text-align: center;
+  margin: 0;
+}
+
+h1 {
+  color: #38bdf8;
+}
+
+/* 🏆 WINNER BANNER */
+#winnerBanner {
+  background: gold;
+  color: black;
+  font-weight: bold;
+  padding: 10px;
+  font-size: 18px;
+}
+
+/* 🏆 AWARD FEED (NEW) */
+#awardFeed {
+  background: #1e293b;
+  margin: 10px auto;
+  width: 85%;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: left;
+  font-size: 14px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+/* 📅 TOP BAR */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 15px;
+}
+
+/* DATE */
+#date {
+  font-weight: bold;
+  color: #38bdf8;
+}
+
+/* TABLE */
+table {
+  margin: auto;
+  width: 85%;
+  border-collapse: collapse;
+  background: #1e293b;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+th {
+  background: #38bdf8;
+  color: black;
+  padding: 12px;
+}
+
+td {
+  padding: 10px;
+  border-bottom: 1px solid #334155;
+}
+
+/* TOP 3 */
+tr:nth-child(1) { background: gold; color: black; }
+tr:nth-child(2) { background: silver; color: black; }
+tr:nth-child(3) { background: #cd7f32; color: black; }
+
+/* BUTTONS */
+button {
+  padding: 6px 10px;
+  margin: 2px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+/* ADMIN BUTTON */
+#adminBtn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: #38bdf8;
+}
+
+/* LOGIN */
+#loginPopup {
+  position: fixed;
+  top: 50px;
+  right: 10px;
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 10px;
+  display: none;
+}
+
+/* LOGOUT */
+#logoutBtn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: red;
+  color: white;
+  display: none;
+}
+
+/* INPUT */
+input {
+  padding: 8px;
+  margin: 5px;
+  border-radius: 5px;
+  border: none;
+}
+
+/* AWARDS */
+.awards {
+  margin-top: 25px;
+}
+
+/* SELECT */
+select {
+  padding: 7px;
+  border-radius: 5px;
+  border: none;
+}
+
+/* AWARD ROW */
+.award-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+
+/* LABEL */
+.award-row label {
+  width: 200px;
+  text-align: left;
+  font-weight: bold;
+}
+
+/* +1 / +2 BUTTONS */
+.btn1 { background: orange; color: white; }
+.btn2 { background: green; color: white; }
+
+/* TABLE ACTION BUTTONS */
+td button {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+/* RESET BUTTON */
+#resetAwardsBtn {
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+/* MOBILE */
+@media (max-width: 600px) {
+  table { width: 95%; }
+
+  .award-row {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .award-row label {
+    width: auto;
+    text-align: center;
+  }
+}

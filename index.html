@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cricket Scoreboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>🏏 Daily Run Scoreboard</h1>
+
+<!-- 🏆 AWARDS TITLE MOVED ABOVE WINNER -->
+<h2>🏆 Awards</h2>
+
+<!-- 🏆 AWARD FEED -->
+<div id="awardFeed"></div>
+
+<!-- 🏆 WINNER -->
+<div id="winnerBanner">🏆 Winner: Not declared yet</div>
+
+<!-- 📅 TOP BAR -->
+<div style="display:flex;justify-content:space-between; padding:10px;">
+  <p id="date"></p>
+  <button id="adminBtn" onclick="toggleLogin()">Admin</button>
+</div>
+
+<!-- 🔑 LOGIN -->
+<div id="loginPopup">
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- 🚪 LOGOUT -->
+<button id="logoutBtn" onclick="logout()">Logout</button>
+
+<!-- 🏆 WINNER CONTROL -->
+<div id="winnerControl" style="display:none;">
+  <input id="winnerName" placeholder="Enter Winner Name">
+  <button onclick="setWinner()">Set Winner</button>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Rank</th>
+      <th>Player</th>
+      <th>Runs</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody id="table"></tbody>
+</table>
+
+<div class="awards">
+
+  <div class="award-row">
+    <label>🏏 Batsman</label>
+    <select id="batsman"></select>
+    <button onclick="giveSingleAward('batsman',1)">+1</button>
+    <button onclick="giveSingleAward('batsman',2)">+2</button>
+  </div>
+
+  <div class="award-row">
+    <label>🎯 Bowler</label>
+    <select id="bowler"></select>
+    <button onclick="giveSingleAward('bowler',1)">+1</button>
+    <button onclick="giveSingleAward('bowler',2)">+2</button>
+  </div>
+
+  <div class="award-row">
+    <label>🧤 Catch</label>
+    <select id="catch"></select>
+    <button onclick="giveSingleAward('catch',1)">+1</button>
+    <button onclick="giveSingleAward('catch',2)">+2</button>
+  </div>
+
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

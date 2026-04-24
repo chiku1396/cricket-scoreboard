@@ -32,6 +32,7 @@ const auth = getAuth(app);
 
 const colRef = collection(db, "players");
 
+/* STATE */
 let admin = false;
 let playersCache = [];
 
@@ -62,80 +63,53 @@ onAuthStateChanged(auth, user => {
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
   resetAwardsBtn.style.display = user ? "block" : "none";
 
-  // 🔥 FORCE TABLE REFRESH (IMPORTANT FIX)
-  if (typeof colRef !== "undefined") {
-    onSnapshot(colRef, () => {}); 
-  }
+  // 🔥 FORCE RE-RENDER SAFELY
+  renderTable(playersCache);
 });
+
+/* RESET */
 window.resetAwards = async function () {
   if (!admin) return;
 
-  try {
-    let errors = [];
+  await setDoc(awardRef, { list: [] });
+  await setDoc(winnerRef, { winner: "" });
 
-    // 1️⃣ Reset awards
-    try {
-      await setDoc(awardRef, { list: [] });
-    } catch (e) {
-      errors.push("awards");
-      console.error("Awards reset error:", e);
-    }
-
-    // 2️⃣ Reset winner
-    try {
-      await setDoc(winnerRef, { winner: "" });
-    } catch (e) {
-      errors.push("winner");
-      console.error("Winner reset error:", e);
-    }
-
-    // 3️⃣ UI clear (always safe)
-    document.getElementById("awardFeed").innerHTML = "";
-
-    // 4️⃣ Show correct message
-    if (errors.length > 0) {
-      alert("Reset completed with minor issues: " + errors.join(", "));
-    } else {
-      alert("Reset successful");
-    }
-
-  } catch (err) {
-    console.error(err);
-    alert("Reset failed completely");
-  }
+  document.getElementById("awardFeed").innerHTML = "";
 };
-/* PLAYERS */
+
+/* FIRESTORE PLAYERS */
 onSnapshot(colRef, snap => {
+  playersCache = [];
+
+  snap.forEach(d => playersCache.push({ id: d.id, ...d.data() }));
+
+  renderTable(playersCache);
+});
+
+/* 🔥 SINGLE RENDER SYSTEM (IMPORTANT) */
+function renderTable(players) {
   const table = document.getElementById("table");
   table.innerHTML = "";
 
-  let players = [];
-
-  snap.forEach(d => players.push({ id: d.id, ...d.data() }));
-  playersCache = players;
-
-  players.sort((a, b) => b.runs - a.runs);
-
   const batsman = document.getElementById("batsman");
   const bowler = document.getElementById("bowler");
-  const catcher = document.getElementById("catch");
+  const catcher = document.getElementById("catcher");
 
   batsman.innerHTML =
   bowler.innerHTML =
   catcher.innerHTML =
     `<option disabled selected>Select</option>`;
 
+  players.sort((a, b) => b.runs - a.runs);
+
   players.forEach((p, i) => {
 
-    /* ✅ FIX 2: ensure admin buttons always render correctly */
-    const isAdmin = !!admin;
-
-    const actions = isAdmin
-    ? `
+    const actions = admin
+      ? `
         <button onclick="updateRun('${p.id}',2)">+2</button>
         <button onclick="updateRun('${p.id}',-3)">-3</button>
-    `
-  : "";
+      `
+      : "";
 
     table.innerHTML += `
       <tr>
@@ -151,10 +125,10 @@ onSnapshot(colRef, snap => {
     bowler.innerHTML += opt;
     catcher.innerHTML += opt;
   });
-});
+}
 
 /* UPDATE RUN */
-window.updateRun = async (id, val) => {
+window.updateRun = async function (id, val) {
   const p = playersCache.find(x => x.id === id);
   if (!p) return;
 
@@ -167,7 +141,7 @@ window.updateRun = async (id, val) => {
 const awardRef = doc(db, "settings", "awards");
 const winnerRef = doc(db, "settings", "match");
 
-window.giveSingleAward = async (type, points) => {
+window.giveSingleAward = async function (type, points) {
   const id = document.getElementById(type).value;
   if (!id) return;
 
@@ -181,11 +155,11 @@ window.giveSingleAward = async (type, points) => {
   let list = snap.exists() ? snap.data().list || [] : [];
 
   const label =
-  type === "batsman"
-    ? "🏏 Batsman of the Day"
-    : type === "bowler"
-    ? "🎯 Bowler of the Day"
-    : "🧤 Catch of the Day";
+    type === "batsman"
+      ? "🏏 Batsman of the Day"
+      : type === "bowler"
+      ? "🎯 Bowler of the Day"
+      : "🧤 Catch of the Day";
 
   list.push(`${label}: ${p.name} +${points}`);
 
@@ -202,6 +176,8 @@ onSnapshot(awardRef, snap => {
   snap.data().list.forEach(item => {
     const div = document.createElement("div");
     div.innerText = item;
+    div.style.color = "gold";
+    div.style.fontWeight = "bold";
     feed.appendChild(div);
   });
 });
@@ -217,7 +193,7 @@ onSnapshot(winnerRef, snap => {
 
   const data = snap.data();
 
-  if (!data.winner || data.winner.trim() === "") {
+  if (!data.winner) {
     banner.innerText = "";
     return;
   }
@@ -230,8 +206,6 @@ window.setWinner = async function () {
   const name = document.getElementById("winnerName").value;
 
   if (!admin) return alert("Only admin");
-
-  if (!name || name.trim() === "") return;
 
   await setDoc(winnerRef, {
     winner: name.trim()

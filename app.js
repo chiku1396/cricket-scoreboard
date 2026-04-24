@@ -58,13 +58,17 @@ window.toggleLogin = () => {
 onAuthStateChanged(auth, user => {
   admin = !!user;
 
-  adminBtn.style.display = user ? "none" : "block";
-  logoutBtn.style.display = user ? "block" : "none";
+  const adminBtn = document.getElementById("adminBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const awardsBox = document.getElementById("awardsBox");
+  const resetBtn = document.getElementById("resetAwardsBtn");
 
-  document.getElementById("awardsBox").style.display = user ? "block" : "none";
-  resetAwardsBtn.style.display = user ? "block" : "none";
+  if (adminBtn) adminBtn.style.display = user ? "none" : "block";
+  if (logoutBtn) logoutBtn.style.display = user ? "block" : "none";
+  if (awardsBox) awardsBox.style.display = user ? "block" : "none";
+  if (resetBtn) resetBtn.style.display = user ? "block" : "none";
 
-  // 🔥 IMPORTANT: force correct render after login/logout
+  // 🔥 force UI refresh
   renderTable(playersCache, admin);
 });
 window.resetAwards = async function () {
@@ -329,41 +333,53 @@ window.loadMatch = async function (date) {
   });
 };
 window.loadSelectedMatch = async function () {
-  const dateInput = document.getElementById("matchDate").value;
+  try {
+    const dateInput = document.getElementById("matchDate").value;
 
-  if (!dateInput) return;
+    if (!dateInput) {
+      alert("Select a date");
+      return;
+    }
 
-  const d = new Date(dateInput);
+    const d = new Date(dateInput);
 
-  const formatted =
-    d.getDate() + "-" +
-    (d.getMonth() + 1) + "-" +
-    String(d.getFullYear()).slice(-2);
+    const dateKey =
+      d.getDate() + "-" +
+      (d.getMonth() + 1) + "-" +
+      String(d.getFullYear()).slice(-2);
 
-  const snap = await getDoc(doc(db, "matches", formatted));
+    const snap = await getDoc(doc(db, "matches", dateKey));
 
-  if (!snap.exists()) {
-    alert("No match found for this date");
-    return;
+    if (!snap.exists()) {
+      alert("No match found for this date");
+      return;
+    }
+
+    const data = snap.data();
+
+    // render players
+    renderTable(data.players || [], admin);
+
+    // winner
+    document.getElementById("winnerBanner").innerText =
+      data.winner ? "🏆 Winner: " + data.winner : "";
+
+    // awards
+    const feed = document.getElementById("awardFeed");
+    feed.innerHTML = "";
+
+    (data.awards || []).forEach(a => {
+      const div = document.createElement("div");
+      div.innerText = a;
+      div.style.color = "gold";
+      div.style.fontWeight = "bold";
+      feed.appendChild(div);
+    });
+
+  } catch (err) {
+    console.error("LOAD ERROR:", err);
+    alert("Load failed");
   }
-
-  const data = snap.data();
-
-  renderTable(data.players, false);
-
-  document.getElementById("winnerBanner").innerText =
-    data.winner ? "🏆 Winner: " + data.winner : "";
-
-  const feed = document.getElementById("awardFeed");
-  feed.innerHTML = "";
-
-  (data.awards || []).forEach(a => {
-    const div = document.createElement("div");
-    div.innerText = a;
-    div.style.color = "gold";
-    div.style.fontWeight = "bold";
-    feed.appendChild(div);
-  });
 };
 function setTodayInCalendar() {
   const today = new Date();
@@ -378,6 +394,16 @@ function setTodayInCalendar() {
   input.value = formatted;
 }
 window.addEventListener("load", async () => {
-  setTodayInCalendar();
+  const today = new Date();
+
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+
+  const formatted = `${yyyy}-${mm}-${dd}`;
+
+  const input = document.getElementById("matchDate");
+  if (input) input.value = formatted;
+
   await loadSelectedMatch();
 });

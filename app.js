@@ -236,25 +236,56 @@ window.saveMatch = async function () {
 /* ================= LOAD MATCH ================= */
 window.loadSelectedMatch = async function () {
   const dateInput = document.getElementById("matchDate").value;
-  if (!dateInput) return alert("Select date");
 
+  if (!dateInput) {
+    alert("Select a date");
+    return;
+  }
+
+  // 🔥 convert YYYY-MM-DD → DD-MM-YY
   const d = new Date(dateInput);
+
   const key =
     `${d.getDate()}-${d.getMonth() + 1}-${String(d.getFullYear()).slice(-2)}`;
 
   const snap = await getDoc(doc(db, "matches", key));
 
-  if (!snap.exists()) return alert("No data found");
+  // =========================
+  // 🔥 ALWAYS CLEAR UI FIRST
+  // =========================
+  document.getElementById("table").innerHTML = "";
+  document.getElementById("awardFeed").innerHTML = "";
+  document.getElementById("winnerBanner").innerText = "";
+
+  // =========================
+  // NO DATA CASE
+  // =========================
+  if (!snap.exists()) {
+    // optional: show message instead of old data
+    document.getElementById("table").innerHTML =
+      `<tr><td colspan="4">No data for this date</td></tr>`;
+    return;
+  }
 
   const data = snap.data();
 
+  // =========================
+  // LOAD TABLE
+  // =========================
   renderTable(data.players || []);
 
-  document.getElementById("winnerBanner").innerText =
-    data.winner ? "🏆 Winner: " + data.winner : "";
+  // =========================
+  // LOAD WINNER (IMPORTANT FIX)
+  // =========================
+  if (data.winner && data.winner.trim() !== "") {
+    document.getElementById("winnerBanner").innerText =
+      "🏆 Winner: " + data.winner;
+  }
 
+  // =========================
+  // LOAD AWARDS (RESET SAFE)
+  // =========================
   const feed = document.getElementById("awardFeed");
-  feed.innerHTML = "";
 
   (data.awards || []).forEach(a => {
     const div = document.createElement("div");
@@ -264,9 +295,17 @@ window.loadSelectedMatch = async function () {
     feed.appendChild(div);
   });
 };
-
+document.getElementById("matchDate").addEventListener("change", () => {
+  loadSelectedMatch();
+});
 /* ================= INIT ================= */
-window.addEventListener("load", async () => {
+window.addEventListener("load", () => {
+  const input = document.getElementById("matchDate");
+
+  if (input) {
+    input.addEventListener("change", loadSelectedMatch);
+  }
+
   setToday();
-  await loadSelectedMatch();
+  loadSelectedMatch();
 });

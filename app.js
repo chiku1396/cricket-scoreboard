@@ -36,11 +36,6 @@ const matchesRef = collection(db, "matches");
 let admin = false;
 let playersCache = [];
 
-/* DATE */
-const d = new Date();
-document.getElementById("date").innerText =
-`${d.getDate()}-${d.getMonth() + 1}-${String(d.getFullYear()).slice(-2)}`;
-
 /* LOGIN */
 window.login = async function () {
   await signInWithEmailAndPassword(auth, email.value, password.value);
@@ -244,7 +239,7 @@ window.setWinner = async function () {
 window.saveMatch = async function () {
   if (!admin) return alert("Only admin can save match");
 
-  const date = document.getElementById("date").innerText;
+  const date = document.getElementById("date").value;
 
   try {
     // 1. get winner
@@ -276,4 +271,19 @@ window.saveMatch = async function () {
     console.error(err);
     alert("Failed to save match");
   }
+};
+function setTodayDate() {
+  const d = new Date();
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+
+  const today = `${year}-${month}-${day}`;
+
+  document.getElementById("date").value = today;
+}
+window.onload = () => {
+  setTodayDate();
+  //loadMatchDates(); // if you already have dropdown/history
 };

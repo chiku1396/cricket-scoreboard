@@ -9,13 +9,8 @@
 <h1>🏏 Daily Run Scoreboard</h1>
 <!-- 📅 TOP BAR -->
 <div class="top-bar">
+  <p id="date"></p>
   <button id="adminBtn" onclick="toggleLogin()">Admin</button>
-
-  <div style="display:flex; gap:10px; align-items:center;">
-    <input type="date" id="matchDate">
-  </div>
-
-  <button onclick="loadSelectedMatch()">Load</button>
 </div>
 <h2 id="awardTitle">🏆 Awards</h2>
 
@@ -77,9 +72,6 @@
     <button id="resetAwardsBtn" onclick="resetAwards()" style="display:none; background:red; color:white;">
       Reset Awards
     </button>
-   <button onclick="saveMatch()" style="background:green;color:white;">
-  Save Today Match
-</button>
   </div>
 
 </div>

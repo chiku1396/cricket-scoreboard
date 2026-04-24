@@ -6,8 +6,7 @@ import {
   updateDoc,
   onSnapshot,
   setDoc,
-  getDoc,
-  getDocs
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -17,7 +16,7 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* ================= FIREBASE ================= */
+/* Firebase Config */
 const firebaseConfig = {
   apiKey: "AIzaSyD1mzmTLVUVLNTvSUINT_puwIstaQ93nwk",
   authDomain: "cricket-scoreboard-final.firebaseapp.com",
@@ -31,24 +30,17 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-/* ================= COLLECTIONS ================= */
-const playersCol = collection(db, "players");
+const colRef = collection(db, "players");
 
-const awardRef = doc(db, "settings", "awards");
-const winnerRef = doc(db, "settings", "match");
-
-/* ================= STATE ================= */
 let admin = false;
 let playersCache = [];
 
-/* ================= DATE KEY ================= */
-function getDateKey(dateStr) {
-  if (!dateStr) return null;
-  const [yyyy, mm, dd] = dateStr.split("-");
-  return `${parseInt(dd)}-${parseInt(mm)}-${yyyy.slice(-2)}`;
-}
+/* DATE */
+const d = new Date();
+document.getElementById("date").innerText =
+`${d.getDate()}-${d.getMonth() + 1}-${String(d.getFullYear()).slice(-2)}`;
 
-/* ================= LOGIN ================= */
+/* LOGIN */
 window.login = async function () {
   await signInWithEmailAndPassword(auth, email.value, password.value);
   loginPopup.style.display = "none";
@@ -61,42 +53,79 @@ window.toggleLogin = () => {
     loginPopup.style.display === "block" ? "none" : "block";
 };
 
-/* ================= AUTH ================= */
+/* AUTH */
 onAuthStateChanged(auth, user => {
   admin = !!user;
 
-  document.getElementById("adminBtn").style.display = user ? "none" : "block";
-  document.getElementById("logoutBtn").style.display = user ? "block" : "none";
+  adminBtn.style.display = user ? "none" : "block";
+  logoutBtn.style.display = user ? "block" : "none";
+
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
-  document.getElementById("resetAwardsBtn").style.display = user ? "block" : "none";
+  resetAwardsBtn.style.display = user ? "block" : "none";
 
-  renderTable(playersCache);
+  // 🔥 IMPORTANT: force correct render after login/logout
+  renderTable(playersCache, admin);
 });
+window.resetAwards = async function () {
+  if (!admin) return;
 
-/* ================= PLAYERS (ONLY LIVE CACHE) ================= */
-onSnapshot(playersCol, snap => {
+  try {
+    let errors = [];
+
+    // 1️⃣ Reset awards
+    try {
+      await setDoc(awardRef, { list: [] });
+    } catch (e) {
+      errors.push("awards");
+      console.error("Awards reset error:", e);
+    }
+
+    // 2️⃣ Reset winner
+    try {
+      await setDoc(winnerRef, { winner: "" });
+    } catch (e) {
+      errors.push("winner");
+      console.error("Winner reset error:", e);
+    }
+
+    // 3️⃣ UI clear (always safe)
+    document.getElementById("awardFeed").innerHTML = "";
+
+    // 4️⃣ Show correct message
+    if (errors.length > 0) {
+      alert("Reset completed with minor issues: " + errors.join(", "));
+    } else {
+      alert("Reset successful");
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("Reset failed completely");
+  }
+};
+/* PLAYERS */
+/* PLAYERS */
+onSnapshot(colRef, snap => {
   playersCache = [];
-  snap.forEach(d => playersCache.push({ id: d.id, ...d.data() }));
-  renderTable(playersCache);
-});
 
-/* ================= RENDER TABLE ================= */
-function renderTable(players) {
+  snap.forEach(d => {
+    playersCache.push({ id: d.id, ...d.data() });
+  });
+
+  renderTable(playersCache, admin);
+});
+function renderTable(players, isAdmin) {
   const table = document.getElementById("table");
+  table.innerHTML = "";
+
   const batsman = document.getElementById("batsman");
   const bowler = document.getElementById("bowler");
   const catcher = document.getElementById("catch");
 
-  if (!table) return;
-
-  table.innerHTML = "";
-
-  if (batsman) {
-    batsman.innerHTML =
-      bowler.innerHTML =
-      catcher.innerHTML =
-        `<option disabled selected>Select</option>`;
-  }
+  batsman.innerHTML =
+  bowler.innerHTML =
+  catcher.innerHTML =
+    `<option disabled selected>Select</option>`;
 
   if (!players || players.length === 0) return;
 
@@ -104,7 +133,8 @@ function renderTable(players) {
 
   players.forEach((p, i) => {
 
-    const actions = admin
+    // 🔥 ALWAYS RELIABLE ADMIN CHECK
+    const actions = isAdmin
       ? `
         <button onclick="updateRun('${p.id}',2)">+2</button>
         <button onclick="updateRun('${p.id}',-3)">-3</button>
@@ -121,14 +151,13 @@ function renderTable(players) {
     `;
 
     const opt = `<option value="${p.id}">${p.name}</option>`;
-    if (batsman) batsman.innerHTML += opt;
-    if (bowler) bowler.innerHTML += opt;
-    if (catcher) catcher.innerHTML += opt;
+    batsman.innerHTML += opt;
+    bowler.innerHTML += opt;
+    catcher.innerHTML += opt;
   });
 }
-
-/* ================= UPDATE RUN ================= */
-window.updateRun = async function (id, val) {
+/* UPDATE RUN */
+window.updateRun = async (id, val) => {
   const p = playersCache.find(x => x.id === id);
   if (!p) return;
 
@@ -137,74 +166,10 @@ window.updateRun = async function (id, val) {
   });
 };
 
-/* ================= LOAD MATCH ================= */
-window.loadSelectedMatch = async function () {
-  const dateInput = document.getElementById("matchDate").value;
+/* AWARDS */
+const awardRef = doc(db, "settings", "awards");
+const winnerRef = doc(db, "settings", "match");
 
-  const table = document.getElementById("table");
-  const feed = document.getElementById("awardFeed");
-
-  // ALWAYS CLEAR FIRST (IMPORTANT FIX)
-  table.innerHTML = "";
-  feed.innerHTML = "";
-  banner.innerText = "";
-
-  if (!dateInput) return;
-
-  const key = getDateKey(dateInput);
-
-  const snap = await getDoc(doc(db, "matches", key));
-
-  if (!snap.exists()) {
-    table.innerHTML =
-      `<tr><td colspan="4">No data for this date</td></tr>`;
-    return;
-  }
-
-  const data = snap.data();
-
-  renderTable(data.players || []);
-
-  banner.innerText =
-    data.winner ? "🏆 Winner: " + data.winner : "";
-
-  (data.awards || []).forEach(a => {
-    const div = document.createElement("div");
-    div.innerText = a;
-    div.style.color = "gold";
-    div.style.fontWeight = "bold";
-    feed.appendChild(div);
-  });
-};
-
-/* ================= SAVE MATCH ================= */
-window.saveMatch = async function () {
-  if (!admin) return alert("Only admin");
-
-  const dateInput = document.getElementById("matchDate").value;
-  if (!dateInput) return alert("Select date");
-
-  const key = getDateKey(dateInput);
-
-  const snap = await getDocs(playersCol);
-
-  let players = [];
-  snap.forEach(d => players.push({ id: d.id, ...d.data() }));
-
-  const winnerSnap = await getDoc(winnerRef);
-  const awardSnap = await getDoc(awardRef);
-
-  await setDoc(doc(db, "matches", key), {
-    date: key,
-    players,
-    winner: winnerSnap.exists() ? winnerSnap.data().winner : "",
-    awards: awardSnap.exists() ? awardSnap.data().list || [] : []
-  });
-
-  alert("Match saved ✅");
-};
-
-/* ================= AWARDS ================= */
 window.giveSingleAward = async function (type, points) {
   const id = document.getElementById(type).value;
   if (!id) return;
@@ -230,18 +195,48 @@ window.giveSingleAward = async function (type, points) {
   await setDoc(awardRef, { list });
 };
 
-/* ================= INIT ================= */
-window.addEventListener("load", () => {
-  const input = document.getElementById("matchDate");
+/* AWARD FEED */
+onSnapshot(awardRef, snap => {
+  const feed = document.getElementById("awardFeed");
+  feed.innerHTML = "";
 
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const dd = String(today.getDate()).padStart(2, "0");
+  if (!snap.exists()) return;
 
-  if (input) input.value = `${yyyy}-${mm}-${dd}`;
-
-  setTimeout(() => {
-    loadSelectedMatch();
-  }, 400);
+  snap.data().list.forEach(item => {
+    const div = document.createElement("div");
+    div.innerText = item;
+    feed.appendChild(div);
+  });
 });
+
+/* WINNER */
+onSnapshot(winnerRef, snap => {
+  const banner = document.getElementById("winnerBanner");
+
+  if (!snap.exists()) {
+    banner.innerText = "";
+    return;
+  }
+
+  const data = snap.data();
+
+  if (!data.winner || data.winner.trim() === "") {
+    banner.innerText = "";
+    return;
+  }
+
+  banner.innerText = "🏆 Winner: " + data.winner;
+});
+
+/* SET WINNER */
+window.setWinner = async function () {
+  const name = document.getElementById("winnerName").value;
+
+  if (!admin) return alert("Only admin");
+
+  if (!name || name.trim() === "") return;
+
+  await setDoc(winnerRef, {
+    winner: name.trim()
+  }, { merge: true });
+};

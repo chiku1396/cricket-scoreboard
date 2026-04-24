@@ -217,6 +217,15 @@ function setTodayDate() {
   const dateInput = document.getElementById("date");
   if (dateInput) dateInput.value = today;
 }
+window.addEventListener("load", () => {
+  setTodayDate();
+
+  const dateInput = document.getElementById("date");
+
+  if (dateInput && dateInput.value) {
+    loadMatchByDate(dateInput.value);
+  }
+});
 
 function getTodayDate() {
   const d = new Date();
@@ -237,7 +246,10 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+window.onload = () => {
+  setTodayDate();
 
+};
 /* LOAD MATCH BY DATE */
 window.loadMatchByDate = async function (date) {
   if (!date) return;

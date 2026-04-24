@@ -306,7 +306,9 @@ window.onload = () => {
   setTodayDate();
   //loadMatchByDate(); // if you already have dropdown/history
 };
-
+document.getElementById("date").addEventListener("change", () => {
+  loadMatchByDate(document.getElementById("date").value);
+});
 
 window.loadMatchByDate = async function (date) {
   if (!date) return;

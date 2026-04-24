@@ -29,7 +29,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-let selectedDate = "";
+
 const colRef = collection(db, "players");
 
 let admin = false;
@@ -52,28 +52,7 @@ window.toggleLogin = () => {
   loginPopup.style.display =
     loginPopup.style.display === "block" ? "none" : "block";
 };
-function formatDate(d) {
-  return d.toLocaleDateString("en-GB").split("/").join("-");
-}
-window.onload = () => {
-  const today = new Date();
-  selectedDate = formatDate(today);
 
-  document.getElementById("matchDate").valueAsDate = today;
-
-  loadByDate();
-};
-window.loadByDate = async function () {
-  const input = document.getElementById("matchDate").value;
-
-  if (!input) return;
-
-  const d = new Date(input);
-  selectedDate = formatDate(d);
-
-  loadPlayers();
-  loadWinner();
-};
 /* AUTH */
 onAuthStateChanged(auth, user => {
   admin = !!user;
@@ -106,94 +85,51 @@ window.resetAwards = async function () {
   await setDoc(winnerRef, { winner: "" }, { merge: true });
 };
 /* PLAYERS */
-function playersRef() {
-  return collection(db, "playersByDate", selectedDate, "list");
-}
-window.updateRun = async (id, val) => {
-  const ref = doc(db, "playersByDate", selectedDate, "list", id);
+onSnapshot(colRef, snap => {
+  const table = document.getElementById("table");
+  table.innerHTML = "";
 
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
+  let players = [];
 
-  const p = snap.data();
+  snap.forEach(d => players.push({ id: d.id, ...d.data() }));
+  playersCache = players;
 
-  await updateDoc(ref, {
-    runs: p.runs + val
+  players.sort((a, b) => b.runs - a.runs);
+
+  const batsman = document.getElementById("batsman");
+  const bowler = document.getElementById("bowler");
+  const catcher = document.getElementById("catch");
+
+  batsman.innerHTML =
+  bowler.innerHTML =
+  catcher.innerHTML =
+    `<option disabled selected>Select</option>`;
+
+  players.forEach((p, i) => {
+
+    /* ✅ FIX 2: ensure admin buttons always render correctly */
+    const actions = admin
+      ? `
+        <button onclick="updateRun('${p.id}',2)">+2</button>
+        <button onclick="updateRun('${p.id}',-3)">-3</button>
+      `
+      : "";
+
+    table.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${p.name}</td>
+        <td>${p.runs}</td>
+        <td>${actions}</td>
+      </tr>
+    `;
+
+    const opt = `<option value="${p.id}">${p.name}</option>`;
+    batsman.innerHTML += opt;
+    bowler.innerHTML += opt;
+    catcher.innerHTML += opt;
   });
-};
-function winnerRefDate() {
-  return doc(db, "winnerByDate", selectedDate);
-}
-
-function loadWinner() {
-  onSnapshot(winnerRefDate(), snap => {
-    const banner = document.getElementById("winnerBanner");
-
-    if (!snap.exists() || !snap.data().winner) {
-      banner.innerText = "";
-      return;
-    }
-
-    banner.innerText = "🏆 Winner: " + snap.data().winner;
-  });
-}
-window.setWinner = async function () {
-  if (!admin) return;
-
-  const name = winnerName.value.trim();
-  if (!name) return;
-
-  await setDoc(winnerRefDate(), {
-    winner: name
-  });
-};
-function loadPlayers() {
-  onSnapshot(playersRef(), snap => {
-
-    const table = document.getElementById("table");
-    table.innerHTML = "";
-
-    let players = [];
-    snap.forEach(d => players.push({ id: d.id, ...d.data() }));
-
-    playersCache = players;
-
-    players.sort((a, b) => b.runs - a.runs);
-
-    const batsman = document.getElementById("batsman");
-    const bowler = document.getElementById("bowler");
-    const catcher = document.getElementById("catch");
-
-    batsman.innerHTML =
-    bowler.innerHTML =
-    catcher.innerHTML =
-      `<option disabled selected>Select</option>`;
-
-    players.forEach((p, i) => {
-
-      const actions = admin
-        ? `
-          <button onclick="updateRun('${p.id}',2)">+2</button>
-          <button onclick="updateRun('${p.id}',-3)">-3</button>
-        `
-        : "";
-
-      table.innerHTML += `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${p.name}</td>
-          <td>${p.runs}</td>
-          <td>${actions}</td>
-        </tr>
-      `;
-
-      const opt = `<option value="${p.id}">${p.name}</option>`;
-      batsman.innerHTML += opt;
-      bowler.innerHTML += opt;
-      catcher.innerHTML += opt;
-    });
-  });
-}
+});
 
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {

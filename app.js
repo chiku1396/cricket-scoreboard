@@ -66,7 +66,25 @@ onAuthStateChanged(auth, user => {
   /* reset button */
   resetAwardsBtn.style.display = user ? "block" : "none";
 });
+window.resetAwards = async function () {
+  if (!admin) return alert("Only admin can reset");
 
+  try {
+    // 1️⃣ Clear awards list
+    await setDoc(awardRef, { list: [] });
+
+    // 2️⃣ Clear winner
+    await setDoc(winnerRef, { winner: "" });
+
+    // 3️⃣ Force UI refresh (important fix)
+    document.getElementById("awardFeed").innerHTML = "";
+    document.getElementById("winnerBanner").innerText = "";
+
+  } catch (err) {
+    console.error(err);
+    alert("Reset failed");
+  }
+};
 /* PLAYERS */
 onSnapshot(colRef, snap => {
   const table = document.getElementById("table");

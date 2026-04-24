@@ -7,22 +7,15 @@
 <body>
 
 <h1>🏏 Daily Run Scoreboard</h1>
-
 <!-- 📅 TOP BAR -->
 <div class="top-bar">
-  <input type="date" id="matchDate">
-  <button onclick="loadByDate()">Load</button>
-
-  <!-- <p id="date"></p> -->
+  <p id="date"></p>
   <button id="adminBtn" onclick="toggleLogin()">Admin</button>
 </div>
-
-<!-- 🏆 WINNER -->
-<h2 id="winnerBanner"></h2>
-
-<!-- 🏆 AWARDS -->
 <h2 id="awardTitle">🏆 Awards</h2>
 
+
+<!-- 🏆 AWARD FEED -->
 <div id="awardFeed" style="background:#1e293b; padding:10px; margin:10px auto; width:85%; border-radius:10px;"></div>
 
 
@@ -34,6 +27,7 @@
   <button onclick="login()">Login</button>
 </div>
 
+<!-- 🚪 LOGOUT -->
 <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
 
 <table>
@@ -48,37 +42,40 @@
   <tbody id="table"></tbody>
 </table>
 
-<!-- 🏆 AWARDS PANEL -->
+
+
+<!-- ✅ FIX: awardsBox controlled by JS -->
 <div class="awards" id="awardsBox" style="display:none;">
 
   <div class="award-row">
-    <label>🏏 Batsman</label>
+    <label>🏏 Batsman of the Day</label>
     <select id="batsman"></select>
     <button onclick="giveSingleAward('batsman',1)">+1</button>
     <button onclick="giveSingleAward('batsman',2)">+2</button>
   </div>
 
   <div class="award-row">
-    <label>🎯 Bowler</label>
+    <label>🎯 Bowler of the Day</label>
     <select id="bowler"></select>
     <button onclick="giveSingleAward('bowler',1)">+1</button>
     <button onclick="giveSingleAward('bowler',2)">+2</button>
   </div>
 
   <div class="award-row">
-    <label>🧤 Catch</label>
+    <label>🧤 Catch of the Day</label>
     <select id="catch"></select>
     <button onclick="giveSingleAward('catch',1)">+1</button>
     <button onclick="giveSingleAward('catch',2)">+2</button>
   </div>
 
-  <button id="resetAwardsBtn" onclick="resetAwards()" style="display:none; background:red; color:white;">
-    Reset Awards
-  </button>
-  <!-- 💾 SAVE MATCH -->
-<button id="saveBtn" onclick="saveMatch()" style="display:none; background:green; color:white;">
-  Save Match
-</button>
+  <div class="award-row">
+    <button id="resetAwardsBtn" onclick="resetAwards()" style="display:none; background:red; color:white;">
+      Reset Awards
+    </button>
+    <button onclick="saveMatch()" style="background:gold; color:black; margin:10px;">
+  💾 Save Match
+    </button>
+  </div>
 
 </div>
 

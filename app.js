@@ -1,10 +1,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
+  collection,
   doc,
+  updateDoc,
+  onSnapshot,
   setDoc,
-  getDoc,
-  onSnapshot
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -28,33 +30,16 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-/* SAFE DOM REFERENCES */
-const adminBtn = document.getElementById("adminBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const saveBtn = document.getElementById("saveBtn");
-const resetAwardsBtn = document.getElementById("resetAwardsBtn");
-const loginPopup = document.getElementById("loginPopup");
+const colRef = collection(db, "players");
+const matchesRef = collection(db, "matches");
 
 let admin = false;
 let playersCache = [];
-let unsub = null;
 
 /* DATE */
-const today = new Date();
+const d = new Date();
 document.getElementById("date").innerText =
-`${today.getDate()}-${today.getMonth() + 1}-${String(today.getFullYear()).slice(-2)}`;
-
-document.getElementById("matchDate").value =
-new Date().toISOString().split("T")[0];
-
-/* MATCH REF */
-function matchRef(date) {
-  return doc(db, "matches", date);
-}
-
-function getDateKey() {
-  return document.getElementById("matchDate").value;
-}
+`${d.getDate()}-${d.getMonth() + 1}-${String(d.getFullYear()).slice(-2)}`;
 
 /* LOGIN */
 window.login = async function () {
@@ -73,137 +58,222 @@ window.toggleLogin = () => {
 onAuthStateChanged(auth, user => {
   admin = !!user;
 
-  if (adminBtn) adminBtn.style.display = user ? "none" : "block";
-  if (logoutBtn) logoutBtn.style.display = user ? "block" : "none";
-  if (saveBtn) saveBtn.style.display = user ? "block" : "none";
-  if (resetAwardsBtn) resetAwardsBtn.style.display = user ? "block" : "none";
+  adminBtn.style.display = user ? "none" : "block";
+  logoutBtn.style.display = user ? "block" : "none";
 
-  renderTable(playersCache);
+  document.getElementById("awardsBox").style.display = user ? "block" : "none";
+  resetAwardsBtn.style.display = user ? "block" : "none";
+
+  // 🔥 IMPORTANT: force correct render after login/logout
+  renderTable(playersCache, admin);
 });
+window.resetAwards = async function () {
+  if (!admin) return;
 
-/* LOAD MATCH */
-window.loadByDate = async function () {
-  const date = getDateKey();
+  try {
+    let errors = [];
 
-  if (!date) {
-    alert("Please select date");
-    return;
+    // 1️⃣ Reset awards
+    try {
+      await setDoc(awardRef, { list: [] });
+    } catch (e) {
+      errors.push("awards");
+      console.error("Awards reset error:", e);
+    }
+
+    // 2️⃣ Reset winner
+    try {
+      await setDoc(winnerRef, { winner: "" });
+    } catch (e) {
+      errors.push("winner");
+      console.error("Winner reset error:", e);
+    }
+
+    // 3️⃣ UI clear (always safe)
+    document.getElementById("awardFeed").innerHTML = "";
+
+    // 4️⃣ Show correct message
+    if (errors.length > 0) {
+      alert("Reset completed with minor issues: " + errors.join(", "));
+    } else {
+      alert("Reset successful");
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("Reset failed completely");
   }
-
-  const snap = await getDoc(matchRef(date));
-
-  if (!snap.exists()) {
-    playersCache = [];
-    renderTable([]);
-    renderAwards([]);
-    renderWinner("");
-    attachLiveListener(date);
-    return;
-  }
-
-  const data = snap.data();
-
-  playersCache = data.players || [];
-
-  renderTable(playersCache);
-  renderAwards(data.awards || []);
-  renderWinner(data.winner || "");
-
-  attachLiveListener(date);
 };
+/* PLAYERS */
+/* PLAYERS */
+onSnapshot(colRef, snap => {
+  playersCache = [];
 
-/* LIVE LISTENER */
-function attachLiveListener(date) {
-  if (unsub) unsub();
+  snap.forEach(d => {
+    playersCache.push({ id: d.id, ...d.data() });
+  });
 
-  unsub = onSnapshot(matchRef(date), snap => {
-    if (!snap.exists()) return;
+  renderTable(playersCache, admin);
+});
+function renderTable(players, isAdmin) {
+  const table = document.getElementById("table");
+  table.innerHTML = "";
 
-    const data = snap.data();
+  const batsman = document.getElementById("batsman");
+  const bowler = document.getElementById("bowler");
+  const catcher = document.getElementById("catch");
 
-    playersCache = data.players || [];
+  batsman.innerHTML =
+  bowler.innerHTML =
+  catcher.innerHTML =
+    `<option disabled selected>Select</option>`;
 
-    renderTable(playersCache);
-    renderAwards(data.awards || []);
-    renderWinner(data.winner || "");
+  if (!players || players.length === 0) return;
+
+  players.sort((a, b) => b.runs - a.runs);
+
+  players.forEach((p, i) => {
+
+    // 🔥 ALWAYS RELIABLE ADMIN CHECK
+    const actions = isAdmin
+      ? `
+        <button onclick="updateRun('${p.id}',2)">+2</button>
+        <button onclick="updateRun('${p.id}',-3)">-3</button>
+      `
+      : "";
+
+    table.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${p.name}</td>
+        <td>${p.runs}</td>
+        <td>${actions}</td>
+      </tr>
+    `;
+
+    const opt = `<option value="${p.id}">${p.name}</option>`;
+    batsman.innerHTML += opt;
+    bowler.innerHTML += opt;
+    catcher.innerHTML += opt;
   });
 }
-
-/* SAVE MATCH */
-window.saveMatch = async function () {
-  const date = getDateKey();
-
-  await setDoc(matchRef(date), {
-    players: playersCache
-  }, { merge: true });
-
-  alert("Saved for " + date);
-};
-
 /* UPDATE RUN */
-window.updateRun = async function (id, val) {
+window.updateRun = async (id, val) => {
   const p = playersCache.find(x => x.id === id);
   if (!p) return;
 
-  p.runs += val;
-
-  await setDoc(matchRef(getDateKey()), {
-    players: playersCache
-  }, { merge: true });
+  await updateDoc(doc(db, "players", id), {
+    runs: p.runs + val
+  });
 };
 
 /* AWARDS */
+const awardRef = doc(db, "settings", "awards");
+const winnerRef = doc(db, "settings", "match");
+
 window.giveSingleAward = async function (type, points) {
   const id = document.getElementById(type).value;
   if (!id) return;
 
   const p = playersCache.find(x => x.id === id);
 
-  p.runs += points;
+  await updateDoc(doc(db, "players", id), {
+    runs: p.runs + points
+  });
 
-  let snap = await getDoc(matchRef(getDateKey()));
-  let data = snap.exists() ? snap.data() : {};
-
-  let awards = data.awards || [];
+  const snap = await getDoc(awardRef);
+  let list = snap.exists() ? snap.data().list || [] : [];
 
   const label =
-    type === "batsman" ? "🏏 Batsman" :
-    type === "bowler" ? "🎯 Bowler" :
-    "🧤 Catch";
+    type === "batsman"
+      ? "🏏 Batsman of the Day"
+      : type === "bowler"
+      ? "🎯 Bowler of the Day"
+      : "🧤 Catch of the Day";
 
-  awards.push(`${label}: ${p.name} +${points}`);
+  list.push(`${label}: ${p.name} +${points}`);
 
-  await setDoc(matchRef(getDateKey()), {
-    players: playersCache,
-    awards
-  }, { merge: true });
+  await setDoc(awardRef, { list });
 };
 
-/* RESET AWARDS */
-window.resetAwards = async function () {
-  if (!admin) return;
-
-  await setDoc(matchRef(getDateKey()), {
-    awards: []
-  }, { merge: true });
-
-  document.getElementById("awardFeed").innerHTML = "";
-};
-
-/* RENDER AWARDS */
-function renderAwards(list) {
+/* AWARD FEED */
+onSnapshot(awardRef, snap => {
   const feed = document.getElementById("awardFeed");
   feed.innerHTML = "";
 
-  (list || []).forEach(a => {
+  if (!snap.exists()) return;
+
+  snap.data().list.forEach(item => {
     const div = document.createElement("div");
-    div.innerText = a;
+    div.innerText = item;
     feed.appendChild(div);
   });
-}
+});
 
 /* WINNER */
-function renderWinner(name) {
-  document.getElementById("winnerBanner").innerText =
-    name ? "🏆 Winner: " + name : "";
-}
+onSnapshot(winnerRef, snap => {
+  const banner = document.getElementById("winnerBanner");
+
+  if (!snap.exists()) {
+    banner.innerText = "";
+    return;
+  }
+
+  const data = snap.data();
+
+  if (!data.winner || data.winner.trim() === "") {
+    banner.innerText = "";
+    return;
+  }
+
+  banner.innerText = "🏆 Winner: " + data.winner;
+});
+
+/* SET WINNER */
+window.setWinner = async function () {
+  const name = document.getElementById("winnerName").value;
+
+  if (!admin) return alert("Only admin");
+
+  if (!name || name.trim() === "") return;
+
+  await setDoc(winnerRef, {
+    winner: name.trim()
+  }, { merge: true });
+};
+window.saveMatch = async function () {
+  if (!admin) return alert("Only admin can save match");
+
+  const date = document.getElementById("date").innerText;
+
+  try {
+    // 1. get winner
+    const winnerSnap = await getDoc(winnerRef);
+    const winner = winnerSnap.exists() ? winnerSnap.data().winner : "";
+
+    // 2. get awards
+    const awardSnap = await getDoc(awardRef);
+    const awards = awardSnap.exists() ? awardSnap.data().list || [] : [];
+
+    // 3. players snapshot (current leaderboard)
+    const players = playersCache.map(p => ({
+      name: p.name,
+      runs: p.runs
+    }));
+
+    // 4. save match document (date wise ID)
+    await setDoc(doc(db, "matches", date), {
+      date,
+      winner,
+      players,
+      awards,
+      timestamp: Date.now()
+    });
+
+    alert("Match saved successfully!");
+
+  } catch (err) {
+    console.error(err);
+    alert("Failed to save match");
+  }
+};

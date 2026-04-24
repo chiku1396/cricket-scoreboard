@@ -1,12 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
-  collection,
   doc,
-  updateDoc,
-  onSnapshot,
   setDoc,
-  getDoc
+  getDoc,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -30,15 +28,25 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-const colRef = collection(db, "players");
-
 let admin = false;
 let playersCache = [];
 
 /* DATE */
-const d = new Date();
+const today = new Date();
 document.getElementById("date").innerText =
-`${d.getDate()}-${d.getMonth() + 1}-${String(d.getFullYear()).slice(-2)}`;
+`${today.getDate()}-${today.getMonth() + 1}-${String(today.getFullYear()).slice(-2)}`;
+
+document.getElementById("matchDate").value =
+new Date().toISOString().split("T")[0];
+
+/* MATCH REF (IMPORTANT CHANGE → matches collection) */
+function matchRef(date) {
+  return doc(db, "matches", date);
+}
+
+function getDateKey() {
+  return document.getElementById("matchDate").value;
+}
 
 /* LOGIN */
 window.login = async function () {
@@ -59,184 +67,117 @@ onAuthStateChanged(auth, user => {
 
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
-
-  document.getElementById("awardsBox").style.display = user ? "block" : "none";
+  saveBtn.style.display = user ? "block" : "none";
+  awardsBox.style.display = user ? "block" : "none";
   resetAwardsBtn.style.display = user ? "block" : "none";
 
-  // 🔥 IMPORTANT: force correct render after login/logout
-  renderTable(playersCache, admin);
+  renderTable(playersCache);
 });
-window.resetAwards = async function () {
-  if (!admin) return;
 
-  try {
-    let errors = [];
+/* LOAD BY DATE */
+window.loadByDate = async function () {
+  const snap = await getDoc(matchRef(getDateKey()));
 
-    // 1️⃣ Reset awards
-    try {
-      await setDoc(awardRef, { list: [] });
-    } catch (e) {
-      errors.push("awards");
-      console.error("Awards reset error:", e);
-    }
-
-    // 2️⃣ Reset winner
-    try {
-      await setDoc(winnerRef, { winner: "" });
-    } catch (e) {
-      errors.push("winner");
-      console.error("Winner reset error:", e);
-    }
-
-    // 3️⃣ UI clear (always safe)
-    document.getElementById("awardFeed").innerHTML = "";
-
-    // 4️⃣ Show correct message
-    if (errors.length > 0) {
-      alert("Reset completed with minor issues: " + errors.join(", "));
-    } else {
-      alert("Reset successful");
-    }
-
-  } catch (err) {
-    console.error(err);
-    alert("Reset failed completely");
+  if (!snap.exists()) {
+    alert("No data for this date");
+    return;
   }
+
+  const data = snap.data();
+
+  playersCache = data.players || [];
+
+  renderTable(playersCache);
+  renderAwards(data.awards || []);
+  renderWinner(data.winner || "");
 };
-/* PLAYERS */
-/* PLAYERS */
-onSnapshot(colRef, snap => {
-  playersCache = [];
 
-  snap.forEach(d => {
-    playersCache.push({ id: d.id, ...d.data() });
-  });
+/* LIVE LISTENER */
+onSnapshot(matchRef(getDateKey()), snap => {
+  if (!snap.exists()) return;
 
-  renderTable(playersCache, admin);
+  const data = snap.data();
+
+  playersCache = data.players || [];
+
+  renderTable(playersCache);
+  renderAwards(data.awards || []);
+  renderWinner(data.winner || "");
 });
-function renderTable(players, isAdmin) {
-  const table = document.getElementById("table");
-  table.innerHTML = "";
 
-  const batsman = document.getElementById("batsman");
-  const bowler = document.getElementById("bowler");
-  const catcher = document.getElementById("catch");
+/* SAVE MATCH */
+window.saveMatch = async function () {
+  await setDoc(matchRef(getDateKey()), {
+    players: playersCache
+  }, { merge: true });
 
-  batsman.innerHTML =
-  bowler.innerHTML =
-  catcher.innerHTML =
-    `<option disabled selected>Select</option>`;
+  alert("Match saved");
+};
 
-  if (!players || players.length === 0) return;
-
-  players.sort((a, b) => b.runs - a.runs);
-
-  players.forEach((p, i) => {
-
-    // 🔥 ALWAYS RELIABLE ADMIN CHECK
-    const actions = isAdmin
-      ? `
-        <button onclick="updateRun('${p.id}',2)">+2</button>
-        <button onclick="updateRun('${p.id}',-3)">-3</button>
-      `
-      : "";
-
-    table.innerHTML += `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${p.name}</td>
-        <td>${p.runs}</td>
-        <td>${actions}</td>
-      </tr>
-    `;
-
-    const opt = `<option value="${p.id}">${p.name}</option>`;
-    batsman.innerHTML += opt;
-    bowler.innerHTML += opt;
-    catcher.innerHTML += opt;
-  });
-}
 /* UPDATE RUN */
-window.updateRun = async (id, val) => {
+window.updateRun = async function (id, val) {
   const p = playersCache.find(x => x.id === id);
   if (!p) return;
 
-  await updateDoc(doc(db, "players", id), {
-    runs: p.runs + val
-  });
+  p.runs += val;
+
+  await setDoc(matchRef(getDateKey()), {
+    players: playersCache
+  }, { merge: true });
 };
 
 /* AWARDS */
-const awardRef = doc(db, "settings", "awards");
-const winnerRef = doc(db, "settings", "match");
-
 window.giveSingleAward = async function (type, points) {
   const id = document.getElementById(type).value;
   if (!id) return;
 
   const p = playersCache.find(x => x.id === id);
 
-  await updateDoc(doc(db, "players", id), {
-    runs: p.runs + points
-  });
+  p.runs += points;
 
-  const snap = await getDoc(awardRef);
-  let list = snap.exists() ? snap.data().list || [] : [];
+  let snap = await getDoc(matchRef(getDateKey()));
+  let data = snap.exists() ? snap.data() : {};
+
+  let awards = data.awards || [];
 
   const label =
-    type === "batsman"
-      ? "🏏 Batsman of the Day"
-      : type === "bowler"
-      ? "🎯 Bowler of the Day"
-      : "🧤 Catch of the Day";
+    type === "batsman" ? "🏏 Batsman" :
+    type === "bowler" ? "🎯 Bowler" :
+    "🧤 Catch";
 
-  list.push(`${label}: ${p.name} +${points}`);
+  awards.push(`${label}: ${p.name} +${points}`);
 
-  await setDoc(awardRef, { list });
+  await setDoc(matchRef(getDateKey()), {
+    players: playersCache,
+    awards
+  }, { merge: true });
 };
 
-/* AWARD FEED */
-onSnapshot(awardRef, snap => {
+/* RESET AWARDS */
+window.resetAwards = async function () {
+  if (!admin) return;
+
+  await setDoc(matchRef(getDateKey()), {
+    awards: []
+  }, { merge: true });
+
+  document.getElementById("awardFeed").innerHTML = "";
+};
+
+/* RENDER AWARDS */
+function renderAwards(list) {
   const feed = document.getElementById("awardFeed");
   feed.innerHTML = "";
 
-  if (!snap.exists()) return;
-
-  snap.data().list.forEach(item => {
+  (list || []).forEach(a => {
     const div = document.createElement("div");
-    div.innerText = item;
+    div.innerText = a;
     feed.appendChild(div);
   });
-});
+}
 
 /* WINNER */
-onSnapshot(winnerRef, snap => {
-  const banner = document.getElementById("winnerBanner");
-
-  if (!snap.exists()) {
-    banner.innerText = "";
-    return;
-  }
-
-  const data = snap.data();
-
-  if (!data.winner || data.winner.trim() === "") {
-    banner.innerText = "";
-    return;
-  }
-
-  banner.innerText = "🏆 Winner: " + data.winner;
-});
-
-/* SET WINNER */
-window.setWinner = async function () {
-  const name = document.getElementById("winnerName").value;
-
-  if (!admin) return alert("Only admin");
-
-  if (!name || name.trim() === "") return;
-
-  await setDoc(winnerRef, {
-    winner: name.trim()
-  }, { merge: true });
-};
+function renderWinner(name) {
+  document.getElementById("winnerBanner").innerText =
+    name ? "🏆 Winner: " + name : "";
+}

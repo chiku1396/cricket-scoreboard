@@ -59,12 +59,14 @@ onAuthStateChanged(auth, user => {
 
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
+  winnerControl.style.display = user ? "block" : "none";
 
-  /* ✅ FIX 1: awards box now visible only for admin */
-  document.getElementById("awardsBox").style.display = user ? "block" : "none";
+  // ✅ NEW: hide action column for viewers
+  const actionHeader = document.getElementById("actionHeader");
 
-  /* reset button */
-  resetAwardsBtn.style.display = user ? "block" : "none";
+  if (actionHeader) {
+    actionHeader.style.display = user ? "table-cell" : "none";
+  }
 });
 window.resetAwards = async function () {
   if (!admin) return;
@@ -120,7 +122,7 @@ onSnapshot(colRef, snap => {
         <td>${i + 1}</td>
         <td>${p.name}</td>
         <td>${p.runs}</td>
-        <td>${actions}</td>
+        <td style="${admin ? '' : 'display:none'}">${actions}</td>
       </tr>
     `;
 

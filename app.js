@@ -6,7 +6,8 @@ import {
   updateDoc,
   onSnapshot,
   setDoc,
-  getDoc
+  getDoc,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -245,35 +246,58 @@ const matchRef = collection(db, "matches");
 
 /* SAVE FULL MATCH DATA */
 window.saveMatch = async function () {
-  if (!admin) return alert("Only admin can save");
+  if (!admin) {
+    alert("Only admin can save match");
+    return;
+  }
 
-  const dateKey = document.getElementById("date").innerText;
+  try {
+    const dateInput = document.getElementById("matchDate").value;
 
-  const snap = await getDocs(colRef);
+    if (!dateInput) {
+      alert("Select date first");
+      return;
+    }
 
-  let players = [];
+    // convert YYYY-MM-DD → DD-MM-YY
+    const d = new Date(dateInput);
 
-  snap.forEach(d => {
-    players.push({ id: d.id, ...d.data() });
-  });
+    const dateKey =
+      d.getDate() + "-" +
+      (d.getMonth() + 1) + "-" +
+      String(d.getFullYear()).slice(-2);
 
-  // get winner
-  const winnerSnap = await getDoc(winnerRef);
-  const winner = winnerSnap.exists() ? winnerSnap.data().winner : "";
+    // 🔥 GET PLAYERS FROM FIRESTORE (MOST IMPORTANT FIX)
+    const snap = await getDocs(colRef);
 
-  // get awards
-  const awardSnap = await getDoc(awardRef);
-  const awards = awardSnap.exists() ? awardSnap.data().list || [] : [];
+    let players = [];
+    snap.forEach(docSnap => {
+      players.push({ id: docSnap.id, ...docSnap.data() });
+    });
 
-  await setDoc(doc(db, "matches", dateKey), {
-    date: dateKey,
-    players,
-    winner,
-    awards,
-    createdAt: new Date().toISOString()
-  });
+    // get winner
+    const winnerSnap = await getDoc(winnerRef);
+    const winner = winnerSnap.exists() ? winnerSnap.data().winner : "";
 
-  alert("Match saved successfully ✅");
+    // get awards
+    const awardSnap = await getDoc(awardRef);
+    const awards = awardSnap.exists() ? awardSnap.data().list || [] : [];
+
+    // 🔥 SAVE TO MATCH COLLECTION
+    await setDoc(doc(db, "matches", dateKey), {
+      date: dateKey,
+      players,
+      winner,
+      awards,
+      savedAt: new Date().toISOString()
+    });
+
+    alert("Match saved successfully ✅");
+
+  } catch (err) {
+    console.error("SAVE ERROR:", err);
+    alert("Save failed ❌ Check console");
+  }
 };
 window.loadMatch = async function (date) {
   const snap = await getDoc(doc(db, "matches", date));

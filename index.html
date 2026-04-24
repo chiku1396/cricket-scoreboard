@@ -10,11 +10,11 @@
 <!-- 📅 TOP BAR -->
 <div class="top-bar">
   <p id="date"></p>
+  <button id="adminBtn" onclick="toggleLogin()">Admin</button>
   <div style="display:flex; gap:10px; align-items:center;">
     <input type="date" id="matchDate" onchange="loadSelectedMatch()" />
     <button onclick="loadSelectedMatch()">Load</button>
   </div>
-  <button id="adminBtn" onclick="toggleLogin()">Admin</button>
 </div>
 <h2 id="awardTitle">🏆 Awards</h2>
 
@@ -76,7 +76,9 @@
     <button id="resetAwardsBtn" onclick="resetAwards()" style="display:none; background:red; color:white;">
       Reset Awards
     </button>
-    <button onclick="saveMatch()" style="background:green;color:white;">
+   <button onclick="saveMatch()" style="background:green;color:white;">
+  Save Today Match
+</button>
   Save Today Match
 </button>
   </div>

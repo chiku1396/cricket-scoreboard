@@ -59,12 +59,13 @@ onAuthStateChanged(auth, user => {
 
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
-
-  /* ✅ FIX 1: awards box now visible only for admin */
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
-
-  /* reset button */
   resetAwardsBtn.style.display = user ? "block" : "none";
+
+  // 🔥 FORCE TABLE REFRESH (IMPORTANT FIX)
+  if (typeof colRef !== "undefined") {
+    onSnapshot(colRef, () => {}); 
+  }
 });
 window.resetAwards = async function () {
   if (!admin) return;
@@ -127,12 +128,14 @@ onSnapshot(colRef, snap => {
   players.forEach((p, i) => {
 
     /* ✅ FIX 2: ensure admin buttons always render correctly */
-    const actions = admin
-      ? `
+    const isAdmin = !!admin;
+
+    const actions = isAdmin
+    ? `
         <button onclick="updateRun('${p.id}',2)">+2</button>
         <button onclick="updateRun('${p.id}',-3)">-3</button>
-      `
-      : "";
+    `
+  : "";
 
     table.innerHTML += `
       <tr>

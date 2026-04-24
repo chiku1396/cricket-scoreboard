@@ -130,7 +130,7 @@ function renderTable(players, isAdmin) {
 
   players.forEach((p, i) => {
 
-const actions = admin
+const actions = (admin === true)
   ? `
     <button onclick="updateRun('${p.id}',2)">+2</button>
     <button onclick="updateRun('${p.id}',-3)">-3</button>

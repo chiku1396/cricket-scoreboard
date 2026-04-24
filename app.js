@@ -240,3 +240,111 @@ window.setWinner = async function () {
     winner: name.trim()
   }, { merge: true });
 };
+
+const matchRef = collection(db, "matches");
+
+/* SAVE FULL MATCH DATA */
+window.saveMatch = async function () {
+  if (!admin) return alert("Only admin can save");
+
+  const dateKey = document.getElementById("date").innerText;
+
+  const snap = await getDocs(colRef);
+
+  let players = [];
+
+  snap.forEach(d => {
+    players.push({ id: d.id, ...d.data() });
+  });
+
+  // get winner
+  const winnerSnap = await getDoc(winnerRef);
+  const winner = winnerSnap.exists() ? winnerSnap.data().winner : "";
+
+  // get awards
+  const awardSnap = await getDoc(awardRef);
+  const awards = awardSnap.exists() ? awardSnap.data().list || [] : [];
+
+  await setDoc(doc(db, "matches", dateKey), {
+    date: dateKey,
+    players,
+    winner,
+    awards,
+    createdAt: new Date().toISOString()
+  });
+
+  alert("Match saved successfully ✅");
+};
+window.loadMatch = async function (date) {
+  const snap = await getDoc(doc(db, "matches", date));
+
+  if (!snap.exists()) {
+    alert("No data for this date");
+    return;
+  }
+
+  const data = snap.data();
+
+  // update table
+  renderTable(data.players, false);
+
+  // update winner
+  document.getElementById("winnerBanner").innerText =
+    "🏆 Winner: " + data.winner;
+
+  // update awards
+  const feed = document.getElementById("awardFeed");
+  feed.innerHTML = "";
+
+  (data.awards || []).forEach(a => {
+    const div = document.createElement("div");
+    div.innerText = a;
+    div.style.color = "gold";
+    div.style.fontWeight = "bold";
+    feed.appendChild(div);
+  });
+};
+window.loadSelectedMatch = async function () {
+  const dateInput = document.getElementById("matchDate").value;
+
+  if (!dateInput) {
+    alert("Select a date");
+    return;
+  }
+
+  // convert YYYY-MM-DD → your format (24-4-26 style)
+  const d = new Date(dateInput);
+
+  const formatted =
+    d.getDate() + "-" +
+    (d.getMonth() + 1) + "-" +
+    String(d.getFullYear()).slice(-2);
+
+  const snap = await getDoc(doc(db, "matches", formatted));
+
+  if (!snap.exists()) {
+    alert("No match found for this date");
+    return;
+  }
+
+  const data = snap.data();
+
+  // render players
+  renderTable(data.players, false);
+
+  // winner
+  document.getElementById("winnerBanner").innerText =
+    data.winner ? "🏆 Winner: " + data.winner : "";
+
+  // awards
+  const feed = document.getElementById("awardFeed");
+  feed.innerHTML = "";
+
+  (data.awards || []).forEach(a => {
+    const div = document.createElement("div");
+    div.innerText = a;
+    div.style.color = "gold";
+    div.style.fontWeight = "bold";
+    feed.appendChild(div);
+  });
+};

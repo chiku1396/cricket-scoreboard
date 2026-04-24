@@ -29,19 +29,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-// window.addEventListener("DOMContentLoaded", () => {
-//   document.getElementById("date").value = getTodayDate();
-// });
-// //document.getElementById("date").addEventListener("change", loadMatchByDate);
-// document.getElementById("date").addEventListener("change", () => {
-//   const date = document.getElementById("date").value;
 
-//   if (!date) return; // very important safety check
-
-//   loadMatchByDate(date);
-// });
 const colRef = collection(db, "players");
-const matchesRef = collection(db, "matches");
 
 let admin = false;
 let playersCache = [];
@@ -69,47 +58,9 @@ onAuthStateChanged(auth, user => {
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
   resetAwardsBtn.style.display = user ? "block" : "none";
 
-  // 🔥 IMPORTANT: force correct render after login/logout
   renderTable(playersCache, admin);
 });
-window.resetAwards = async function () {
-  if (!admin) return;
 
-  try {
-    let errors = [];
-
-    // 1️⃣ Reset awards
-    try {
-      await setDoc(awardRef, { list: [] });
-    } catch (e) {
-      errors.push("awards");
-      console.error("Awards reset error:", e);
-    }
-
-    // 2️⃣ Reset winner
-    try {
-      await setDoc(winnerRef, { winner: "" });
-    } catch (e) {
-      errors.push("winner");
-      console.error("Winner reset error:", e);
-    }
-
-    // 3️⃣ UI clear (always safe)
-    document.getElementById("awardFeed").innerHTML = "";
-
-    // 4️⃣ Show correct message
-    if (errors.length > 0) {
-      alert("Reset completed with minor issues: " + errors.join(", "));
-    } else {
-      alert("Reset successful");
-    }
-
-  } catch (err) {
-    console.error(err);
-    alert("Reset failed completely");
-  }
-};
-/* PLAYERS */
 /* PLAYERS */
 onSnapshot(colRef, snap => {
   playersCache = [];
@@ -120,6 +71,7 @@ onSnapshot(colRef, snap => {
 
   renderTable(playersCache, admin);
 });
+
 function renderTable(players, isAdmin) {
   const table = document.getElementById("table");
   table.innerHTML = "";
@@ -127,6 +79,8 @@ function renderTable(players, isAdmin) {
   const batsman = document.getElementById("batsman");
   const bowler = document.getElementById("bowler");
   const catcher = document.getElementById("catch");
+
+  if (!table || !batsman || !bowler || !catcher) return;
 
   batsman.innerHTML =
   bowler.innerHTML =
@@ -139,7 +93,6 @@ function renderTable(players, isAdmin) {
 
   players.forEach((p, i) => {
 
-    // 🔥 ALWAYS RELIABLE ADMIN CHECK
     const actions = isAdmin
       ? `
         <button onclick="updateRun('${p.id}',2)">+2</button>
@@ -162,6 +115,7 @@ function renderTable(players, isAdmin) {
     catcher.innerHTML += opt;
   });
 }
+
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
   const p = playersCache.find(x => x.id === id);
@@ -204,6 +158,8 @@ window.giveSingleAward = async function (type, points) {
 /* AWARD FEED */
 onSnapshot(awardRef, snap => {
   const feed = document.getElementById("awardFeed");
+  if (!feed) return;
+
   feed.innerHTML = "";
 
   if (!snap.exists()) return;
@@ -215,30 +171,24 @@ onSnapshot(awardRef, snap => {
   });
 });
 
-
-
-
+/* SAVE MATCH */
 window.saveMatch = async function () {
   if (!admin) return alert("Only admin can save match");
 
   const date = document.getElementById("date").value;
 
   try {
-    // 1. get winner
     const winnerSnap = await getDoc(winnerRef);
     const winner = winnerSnap.exists() ? winnerSnap.data().winner : "";
 
-    // 2. get awards
     const awardSnap = await getDoc(awardRef);
     const awards = awardSnap.exists() ? awardSnap.data().list || [] : [];
 
-    // 3. players snapshot (current leaderboard)
     const players = playersCache.map(p => ({
       name: p.name,
       runs: p.runs
     }));
 
-    // 4. save match document (date wise ID)
     await setDoc(doc(db, "matches", date), {
       date,
       winner,
@@ -254,57 +204,72 @@ window.saveMatch = async function () {
     alert("Failed to save match");
   }
 };
+
+/* DATE HELPERS */
 function setTodayDate() {
   const d = new Date();
-
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
 
   const today = `${year}-${month}-${day}`;
 
-  document.getElementById("date").value = today;
+  const dateInput = document.getElementById("date");
+  if (dateInput) dateInput.value = today;
 }
+
 function getTodayDate() {
   const d = new Date();
-
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
-window.onload = () => {
+
+/* INIT */
+window.addEventListener("DOMContentLoaded", () => {
   setTodayDate();
-  //loadMatchByDate(); // if you already have dropdown/history
-};
-document.getElementById("date").addEventListener("change", () => {
-  loadMatchByDate(document.getElementById("date").value);
+
+  const dateInput = document.getElementById("date");
+  if (dateInput) {
+    dateInput.addEventListener("change", (e) => {
+      loadMatchByDate(e.target.value);
+    });
+  }
 });
 
+/* LOAD MATCH BY DATE */
 window.loadMatchByDate = async function (date) {
   if (!date) return;
 
   const snap = await getDoc(doc(db, "matches", date));
 
-  // clear UI
-  document.getElementById("table").innerHTML = "";
-  document.getElementById("awardFeed").innerHTML = "";
+  const table = document.getElementById("table");
+  const feed = document.getElementById("awardFeed");
+  const banner = document.getElementById("winnerBanner");
 
+  if (!table || !feed || !banner) return;
+
+  table.innerHTML = "";
+  feed.innerHTML = "";
+  banner.style.display = "none";
+  banner.innerText = "";
 
   if (!snap.exists()) {
-    document.getElementById("table").innerHTML =
-      "<tr><td colspan='4'>No match found</td></tr>";
+    table.innerHTML = "<tr><td colspan='4'>No match found</td></tr>";
     return;
   }
 
   const data = snap.data();
 
+  if (data.winner) {
+    banner.style.display = "block";
+    banner.innerText = "🏆 Winner: " + data.winner;
+  }
 
-
-  // players
   data.players?.forEach((p, i) => {
-    document.getElementById("table").innerHTML += `
+    table.innerHTML += `
       <tr>
         <td>${i + 1}</td>
         <td>${p.name}</td>
@@ -314,10 +279,9 @@ window.loadMatchByDate = async function (date) {
     `;
   });
 
-  // awards
   data.awards?.forEach(a => {
     const div = document.createElement("div");
     div.innerText = a;
-    document.getElementById("awardFeed").appendChild(div);
+    feed.appendChild(div);
   });
 };

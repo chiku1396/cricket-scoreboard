@@ -45,17 +45,29 @@ h1 {
   overflow-y: auto;
 }
 
-/* 📅 TOP BAR */
 .top-bar {
+  position: relative;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
+  align-items: center;
   padding: 10px 15px;
 }
 
-/* DATE */
+/* center date absolutely */
 #date {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   font-weight: bold;
   color: #38bdf8;
+}
+
+/* keep admin button on right */
+#adminBtn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  background: #38bdf8;
 }
 
 /* TABLE */
@@ -101,13 +113,7 @@ button:hover {
   opacity: 0.85;
 }
 
-/* ADMIN BUTTON */
-#adminBtn {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background: #38bdf8;
-}
+
 
 /* LOGIN */
 #loginPopup {
@@ -182,7 +188,11 @@ td button {
   padding: 8px 12px;
   border-radius: 6px;
 }
-
+#awardTitle {
+  border: none;
+  text-decoration: none;
+  margin: 10px 0;
+}
 /* MOBILE */
 @media (max-width: 600px) {
   table { width: 95%; }

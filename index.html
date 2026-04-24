@@ -7,7 +7,7 @@
 <body>
 
 <h1>🏏 Daily Run Scoreboard</h1>
-<h2>🏆 Awards</h2>
+<h2 id="awardTitle">🏆 Awards</h2>
 <!-- 🏆 WINNER TOP (FIXED) -->
 <div id="winnerBanner"></div>
 
@@ -15,8 +15,8 @@
 <div id="awardFeed" style="background:#1e293b; padding:10px; margin:10px auto; width:85%; border-radius:10px;"></div>
 
 <!-- 📅 TOP BAR -->
-<div style="display:flex;justify-content:space-between; padding:10px;">
-  <p id="date"></p>
+<div class="top-bar">
+  <input type="date" id="matchDate" onchange="loadByDate()" />
   <button id="adminBtn" onclick="toggleLogin()">Admin</button>
 </div>
 

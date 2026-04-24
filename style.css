@@ -10,27 +10,6 @@ h1 {
   color: #38bdf8;
 }
 
-/* 🏆 WINNER BANNER (CENTERED FIXED) */
-#winnerBanner {
-  background: gold;
-  color: black;
-  font-weight: bold;
-
-  /* ✅ TRUE CENTER FIX */
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-
-  width: fit-content;
-  max-width: 90%;
-
-  padding: 15px 25px;
-  font-size: 22px;
-  border-radius: 10px;
-
-  text-align: center;
-  margin: 20px 0;
-}
 
 /* 🏆 AWARD FEED */
 #awardFeed {

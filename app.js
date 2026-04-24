@@ -90,7 +90,6 @@ window.resetAwards = async function () {
 
     // 3️⃣ UI clear (always safe)
     document.getElementById("awardFeed").innerHTML = "";
-    document.getElementById("winnerBanner").innerText = "";
 
     // 4️⃣ Show correct message
     if (errors.length > 0) {

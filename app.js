@@ -27,7 +27,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-
+const adminBtn = document.getElementById("adminBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const saveBtn = document.getElementById("saveBtn");
+const resetAwardsBtn = document.getElementById("resetAwardsBtn");
+const loginPopup = document.getElementById("loginPopup");
 let admin = false;
 let playersCache = [];
 
@@ -65,21 +69,26 @@ window.toggleLogin = () => {
 onAuthStateChanged(auth, user => {
   admin = !!user;
 
-  adminBtn.style.display = user ? "none" : "block";
-  logoutBtn.style.display = user ? "block" : "none";
-  saveBtn.style.display = user ? "block" : "none";
-  awardsBox.style.display = user ? "block" : "none";
-  resetAwardsBtn.style.display = user ? "block" : "none";
+  if (adminBtn) adminBtn.style.display = user ? "none" : "block";
+  if (logoutBtn) logoutBtn.style.display = user ? "block" : "none";
+  if (saveBtn) saveBtn.style.display = user ? "block" : "none";
+  if (resetAwardsBtn) resetAwardsBtn.style.display = user ? "block" : "none";
 
   renderTable(playersCache);
 });
 
 /* LOAD BY DATE */
 window.loadByDate = async function () {
-  const snap = await getDoc(matchRef(getDateKey()));
+  const date = getDateKey();
+
+  const snap = await getDoc(matchRef(date));
 
   if (!snap.exists()) {
     alert("No data for this date");
+    playersCache = [];
+    renderTable(playersCache);
+    renderAwards([]);
+    renderWinner("");
     return;
   }
 
@@ -90,6 +99,8 @@ window.loadByDate = async function () {
   renderTable(playersCache);
   renderAwards(data.awards || []);
   renderWinner(data.winner || "");
+
+  attachLiveListener(date);
 };
 
 /* LIVE LISTENER */
@@ -180,4 +191,21 @@ function renderAwards(list) {
 function renderWinner(name) {
   document.getElementById("winnerBanner").innerText =
     name ? "🏆 Winner: " + name : "";
+}
+let unsub = null;
+
+function attachLiveListener(date) {
+  if (unsub) unsub(); // remove old listener
+
+  unsub = onSnapshot(matchRef(date), snap => {
+    if (!snap.exists()) return;
+
+    const data = snap.data();
+
+    playersCache = data.players || [];
+
+    renderTable(playersCache);
+    renderAwards(data.awards || []);
+    renderWinner(data.winner || "");
+  });
 }

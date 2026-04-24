@@ -27,13 +27,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+/* SAFE DOM REFERENCES */
 const adminBtn = document.getElementById("adminBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const saveBtn = document.getElementById("saveBtn");
 const resetAwardsBtn = document.getElementById("resetAwardsBtn");
 const loginPopup = document.getElementById("loginPopup");
+
 let admin = false;
 let playersCache = [];
+let unsub = null;
 
 /* DATE */
 const today = new Date();
@@ -43,7 +47,7 @@ document.getElementById("date").innerText =
 document.getElementById("matchDate").value =
 new Date().toISOString().split("T")[0];
 
-/* MATCH REF (IMPORTANT CHANGE → matches collection) */
+/* MATCH REF */
 function matchRef(date) {
   return doc(db, "matches", date);
 }
@@ -77,19 +81,18 @@ onAuthStateChanged(auth, user => {
   renderTable(playersCache);
 });
 
-/* LOAD BY DATE */
+/* LOAD MATCH */
 window.loadByDate = async function () {
   const date = getDateKey();
 
   if (!date) {
-    alert("Please select a date");
+    alert("Please select date");
     return;
   }
 
   const snap = await getDoc(matchRef(date));
 
   if (!snap.exists()) {
-    alert("No match found for this date");
     playersCache = [];
     renderTable([]);
     renderAwards([]);
@@ -110,17 +113,21 @@ window.loadByDate = async function () {
 };
 
 /* LIVE LISTENER */
-onSnapshot(matchRef(getDateKey()), snap => {
-  if (!snap.exists()) return;
+function attachLiveListener(date) {
+  if (unsub) unsub();
 
-  const data = snap.data();
+  unsub = onSnapshot(matchRef(date), snap => {
+    if (!snap.exists()) return;
 
-  playersCache = data.players || [];
+    const data = snap.data();
 
-  renderTable(playersCache);
-  renderAwards(data.awards || []);
-  renderWinner(data.winner || "");
-});
+    playersCache = data.players || [];
+
+    renderTable(playersCache);
+    renderAwards(data.awards || []);
+    renderWinner(data.winner || "");
+  });
+}
 
 /* SAVE MATCH */
 window.saveMatch = async function () {
@@ -199,25 +206,4 @@ function renderAwards(list) {
 function renderWinner(name) {
   document.getElementById("winnerBanner").innerText =
     name ? "🏆 Winner: " + name : "";
-}
-let unsub = null;
-
-
-function attachLiveListener(date) {
-  if (unsub) unsub();
-
-  unsub = onSnapshot(matchRef(date), snap => {
-    if (!snap.exists()) return;
-
-    const data = snap.data();
-
-    playersCache = data.players || [];
-
-    renderTable(playersCache);
-    renderAwards(data.awards || []);
-    renderWinner(data.winner || "");
-  });
-}
-function matchRef(date) {
-  return doc(db, "matches", date);
 }

@@ -215,24 +215,7 @@ onSnapshot(awardRef, snap => {
   });
 });
 
-/* WINNER */
-onSnapshot(winnerRef, snap => {
-  const banner = document.getElementById("winnerBanner");
 
-  if (!snap.exists()) {
-    banner.innerText = "";
-    return;
-  }
-
-  const data = snap.data();
-
-  if (!data.winner || data.winner.trim() === "") {
-    banner.innerText = "";
-    return;
-  }
-
-  banner.innerText = "🏆 Winner: " + data.winner;
-});
 
 /* SET WINNER */
 window.setWinner = async function () {
@@ -318,9 +301,7 @@ window.loadMatchByDate = async function (date) {
   // clear UI
   document.getElementById("table").innerHTML = "";
   document.getElementById("awardFeed").innerHTML = "";
-  const banner = document.getElementById("winnerBanner");
-  banner.style.display = "none";
-  banner.innerText = "";
+
 
   if (!snap.exists()) {
     document.getElementById("table").innerHTML =
@@ -330,11 +311,7 @@ window.loadMatchByDate = async function (date) {
 
   const data = snap.data();
 
-  // winner
-  if (data.winner) {
-    banner.style.display = "block";
-    banner.innerText = "🏆 Winner: " + data.winner;
-  }
+
 
   // players
   data.players?.forEach((p, i) => {

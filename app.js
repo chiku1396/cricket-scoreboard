@@ -16,7 +16,7 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* Firebase */
+/* Firebase Config */
 const firebaseConfig = {
   apiKey: "AIzaSyD1mzmTLVUVLNTvSUINT_puwIstaQ93nwk",
   authDomain: "cricket-scoreboard-final.firebaseapp.com",
@@ -40,8 +40,8 @@ const d = new Date();
 document.getElementById("date").innerText =
 `${d.getDate()}-${d.getMonth() + 1}-${String(d.getFullYear()).slice(-2)}`;
 
-/* AUTH */
-window.login = async () => {
+/* LOGIN */
+window.login = async function () {
   await signInWithEmailAndPassword(auth, email.value, password.value);
   loginPopup.style.display = "none";
 };
@@ -53,12 +53,18 @@ window.toggleLogin = () => {
     loginPopup.style.display === "block" ? "none" : "block";
 };
 
+/* AUTH */
 onAuthStateChanged(auth, user => {
   admin = !!user;
 
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
-  winnerControl.style.display = user ? "block" : "none";
+
+  /* ✅ FIX 1: awards box now visible only for admin */
+  document.getElementById("awardsBox").style.display = user ? "block" : "none";
+
+  /* reset button */
+  resetAwardsBtn.style.display = user ? "block" : "none";
 });
 
 /* PLAYERS */
@@ -84,10 +90,12 @@ onSnapshot(colRef, snap => {
 
   players.forEach((p, i) => {
 
-    // ✅ FIX: admin check ensures buttons appear
+    /* ✅ FIX 2: ensure admin buttons always render correctly */
     const actions = admin
-      ? `<button onclick="updateRun('${p.id}',2)">+2</button>
-         <button onclick="updateRun('${p.id}',-3)">-3</button>`
+      ? `
+        <button onclick="updateRun('${p.id}',2)">+2</button>
+        <button onclick="updateRun('${p.id}',-3)">-3</button>
+      `
       : "";
 
     table.innerHTML += `
@@ -152,7 +160,7 @@ onSnapshot(awardRef, snap => {
   });
 });
 
-/* WINNER (NO DEFAULT TEXT ANYMORE) */
+/* WINNER */
 onSnapshot(winnerRef, snap => {
   const banner = document.getElementById("winnerBanner");
 
@@ -172,11 +180,14 @@ onSnapshot(winnerRef, snap => {
 });
 
 /* SET WINNER */
-window.setWinner = async () => {
-  if (!admin) return;
+window.setWinner = async function () {
+  const name = document.getElementById("winnerName").value;
 
-  const name = winnerName.value.trim();
-  if (!name) return;
+  if (!admin) return alert("Only admin");
 
-  await setDoc(winnerRef, { winner: name }, { merge: true });
+  if (!name || name.trim() === "") return;
+
+  await setDoc(winnerRef, {
+    winner: name.trim()
+  }, { merge: true });
 };

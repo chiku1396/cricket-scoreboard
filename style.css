@@ -10,16 +10,22 @@ h1 {
   color: #38bdf8;
 }
 
-/* 🏆 WINNER BANNER */
+/* 🏆 WINNER BANNER (CENTERED FIXED) */
 #winnerBanner {
   background: gold;
   color: black;
   font-weight: bold;
-  padding: 10px;
-  font-size: 18px;
+  padding: 15px;
+  font-size: 22px;
+
+  /* ✅ CENTER FIX */
+  width: 60%;
+  margin: 20px auto;
+  border-radius: 10px;
+  text-align: center;
 }
 
-/* 🏆 AWARD FEED (NEW) */
+/* 🏆 AWARD FEED */
 #awardFeed {
   background: #1e293b;
   margin: 10px auto;
@@ -66,10 +72,13 @@ td {
   border-bottom: 1px solid #334155;
 }
 
-/* TOP 3 */
-tr:nth-child(1) { background: gold; color: black; }
-tr:nth-child(2) { background: silver; color: black; }
-tr:nth-child(3) { background: #cd7f32; color: black; }
+/* ❌ REMOVED TOP 3 YELLOW/SILVER/BRONZE COLORS */
+tr:nth-child(1),
+tr:nth-child(2),
+tr:nth-child(3) {
+  background: transparent !important;
+  color: white !important;
+}
 
 /* BUTTONS */
 button {

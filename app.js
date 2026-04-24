@@ -29,7 +29,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-document.getElementById("date").addEventListener("change", loadMatchByDate);
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("date").value = getTodayDate();
+});
+//document.getElementById("date").addEventListener("change", loadMatchByDate);
+document.getElementById("date").addEventListener("change", () => {
+  const date = document.getElementById("date").value;
+
+  if (!date) return; // very important safety check
+
+  loadMatchByDate(date);
+});
 const colRef = collection(db, "players");
 const matchesRef = collection(db, "matches");
 
@@ -283,46 +293,50 @@ function setTodayDate() {
 
   document.getElementById("date").value = today;
 }
+function getTodayDate() {
+  const d = new Date();
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
 window.onload = () => {
   setTodayDate();
-  loadMatchByDate(); // if you already have dropdown/history
+  //loadMatchByDate(); // if you already have dropdown/history
 };
 
 
-window.loadMatchByDate = async function () {
-  const date = document.getElementById("date").value;
-
+window.loadMatchByDate = async function (date) {
   if (!date) return;
 
   const snap = await getDoc(doc(db, "matches", date));
 
-  // 🧹 CLEAR UI FIRST
-  const table = document.getElementById("table");
-  const feed = document.getElementById("awardFeed");
+  // clear UI
+  document.getElementById("table").innerHTML = "";
+  document.getElementById("awardFeed").innerHTML = "";
   const banner = document.getElementById("winnerBanner");
-
-  table.innerHTML = "";
-  feed.innerHTML = "";
   banner.style.display = "none";
   banner.innerText = "";
 
-  // ❌ IF NO MATCH FOUND
   if (!snap.exists()) {
-    table.innerHTML = "<tr><td colspan='4'>No match found for this date</td></tr>";
+    document.getElementById("table").innerHTML =
+      "<tr><td colspan='4'>No match found</td></tr>";
     return;
   }
 
   const data = snap.data();
 
-  // 🏆 WINNER
+  // winner
   if (data.winner) {
     banner.style.display = "block";
     banner.innerText = "🏆 Winner: " + data.winner;
   }
 
-  // 🏏 SCOREBOARD
+  // players
   data.players?.forEach((p, i) => {
-    table.innerHTML += `
+    document.getElementById("table").innerHTML += `
       <tr>
         <td>${i + 1}</td>
         <td>${p.name}</td>
@@ -332,10 +346,10 @@ window.loadMatchByDate = async function () {
     `;
   });
 
-  // 🎖 AWARDS
+  // awards
   data.awards?.forEach(a => {
     const div = document.createElement("div");
     div.innerText = a;
-    feed.appendChild(div);
+    document.getElementById("awardFeed").appendChild(div);
   });
 };

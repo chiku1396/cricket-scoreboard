@@ -17,7 +17,7 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* Firebase Config */
+/* ================= FIREBASE ================= */
 const firebaseConfig = {
   apiKey: "AIzaSyD1mzmTLVUVLNTvSUINT_puwIstaQ93nwk",
   authDomain: "cricket-scoreboard-final.firebaseapp.com",
@@ -31,16 +31,19 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+/* ================= COLLECTIONS ================= */
 const playersCol = collection(db, "players");
 const matchCol = collection(db, "matches");
 
 const awardRef = doc(db, "settings", "awards");
 const winnerRef = doc(db, "settings", "match");
 
+/* ================= STATE ================= */
 let admin = false;
 let playersCache = [];
+let currentMode = "live"; // live | history
 
-/* ================= DATE KEY FIX ================= */
+/* ================= DATE KEY ================= */
 function getDateKey(dateStr) {
   const [yyyy, mm, dd] = dateStr.split("-");
   return `${parseInt(dd)}-${parseInt(mm)}-${yyyy.slice(-2)}`;
@@ -88,14 +91,10 @@ onAuthStateChanged(auth, user => {
   renderTable(playersCache);
 });
 
-/* ================= PLAYERS LIVE ================= */
-onSnapshot(playersCol, snap => {
-  playersCache = [];
-  snap.forEach(d => playersCache.push({ id: d.id, ...d.data() }));
-  renderTable(playersCache);
-});
+/* ================= REMOVE LIVE SNAPSHOT CONFLICT ================= */
+/* (IMPORTANT: no onSnapshot(playersCol)) */
 
-/* ================= RENDER ================= */
+/* ================= RENDER TABLE ================= */
 function renderTable(players) {
   const table = document.getElementById("table");
   table.innerHTML = "";
@@ -106,23 +105,24 @@ function renderTable(players) {
 
   if (batsman) {
     batsman.innerHTML =
-      bowler.innerHTML =
-      catcher.innerHTML =
-        `<option disabled selected>Select</option>`;
+    bowler.innerHTML =
+    catcher.innerHTML =
+      `<option disabled selected>Select</option>`;
   }
 
-  if (!players) return;
+  if (!players || players.length === 0) return;
 
   players.sort((a, b) => b.runs - a.runs);
 
   players.forEach((p, i) => {
 
-    const actions = admin
-      ? `
-        <button onclick="updateRun('${p.id}',2)">+2</button>
-        <button onclick="updateRun('${p.id}',-3)">-3</button>
-      `
-      : "";
+    const actions =
+      (admin && currentMode === "live")
+        ? `
+          <button onclick="updateRun('${p.id}',2)">+2</button>
+          <button onclick="updateRun('${p.id}',-3)">-3</button>
+        `
+        : "";
 
     table.innerHTML += `
       <tr>
@@ -141,7 +141,7 @@ function renderTable(players) {
 }
 
 /* ================= UPDATE RUN ================= */
-window.updateRun = async (id, val) => {
+window.updateRun = async function (id, val) {
   const p = playersCache.find(x => x.id === id);
   if (!p) return;
 
@@ -180,7 +180,6 @@ window.saveMatch = async function () {
 /* ================= LOAD MATCH ================= */
 window.loadSelectedMatch = async function () {
   const dateInput = document.getElementById("matchDate").value;
-
   if (!dateInput) return;
 
   const key = getDateKey(dateInput);
@@ -198,14 +197,18 @@ window.loadSelectedMatch = async function () {
   if (!snap.exists()) {
     table.innerHTML =
       `<tr><td colspan="4">No data for this date</td></tr>`;
+    currentMode = "history";
     return;
   }
 
   const data = snap.data();
 
+  currentMode = "history";
+
   renderTable(data.players || []);
 
-  banner.innerText = data.winner ? "🏆 Winner: " + data.winner : "";
+  banner.innerText =
+    data.winner ? "🏆 Winner: " + data.winner : "";
 
   (data.awards || []).forEach(a => {
     const div = document.createElement("div");
@@ -216,10 +219,13 @@ window.loadSelectedMatch = async function () {
   });
 };
 
+/* ================= DATE CHANGE ================= */
+document.getElementById("matchDate")
+  .addEventListener("change", loadSelectedMatch);
+
 /* ================= INIT ================= */
 window.addEventListener("load", () => {
   setToday();
-
   setTimeout(() => {
     loadSelectedMatch();
   }, 300);

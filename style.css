@@ -15,14 +15,21 @@ h1 {
   background: gold;
   color: black;
   font-weight: bold;
-  padding: 15px;
-  font-size: 22px;
 
-  /* ✅ CENTER FIX */
-  width: 60%;
-  margin: 20px auto;
+  /* ✅ TRUE CENTER FIX */
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: fit-content;
+  max-width: 90%;
+
+  padding: 15px 25px;
+  font-size: 22px;
   border-radius: 10px;
+
   text-align: center;
+  margin: 20px 0;
 }
 
 /* 🏆 AWARD FEED */

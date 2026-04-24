@@ -59,33 +59,14 @@ onAuthStateChanged(auth, user => {
 
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
-  winnerControl.style.display = user ? "block" : "none";
 
-  // ✅ NEW: hide action column for viewers
-  const actionHeader = document.getElementById("actionHeader");
+  /* ✅ FIX 1: awards box now visible only for admin */
+  document.getElementById("awardsBox").style.display = user ? "block" : "none";
 
-  if (actionHeader) {
-    actionHeader.style.display = user ? "table-cell" : "none";
-  }
+  /* reset button */
+  resetAwardsBtn.style.display = user ? "block" : "none";
 });
-window.resetAwards = async function () {
-  if (!admin) return;
 
-  // 1️⃣ Get award history
-  const snap = await getDoc(awardRef);
-
-  if (snap.exists()) {
-    const list = snap.data().list || [];
-
-    // ⚠️ NOTE: we cannot reverse runs properly without storing deltas per player
-    // So we only clear award list safely (best practice)
-
-    await setDoc(awardRef, { list: [] });
-  }
-
-  // 2️⃣ Reset winner
-  await setDoc(winnerRef, { winner: "" }, { merge: true });
-};
 /* PLAYERS */
 onSnapshot(colRef, snap => {
   const table = document.getElementById("table");
@@ -122,7 +103,7 @@ onSnapshot(colRef, snap => {
         <td>${i + 1}</td>
         <td>${p.name}</td>
         <td>${p.runs}</td>
-        <td style="${admin ? '' : 'display:none'}">${actions}</td>
+        <td>${actions}</td>
       </tr>
     `;
 

@@ -290,52 +290,99 @@ window.onload = () => {
 window.loadMatchByDate = async function (date) {
   if (!date) return;
 
-  const docRef = doc(db, "matches", date);
-  const snap = await getDoc(docRef); // ✅ snap is defined here
-
   const table = document.getElementById("table");
   const feed = document.getElementById("awardFeed");
   const banner = document.getElementById("winnerBanner");
 
-  if (!table || !feed || !banner) {
-    console.error("Missing DOM elements");
-    return;
-  }
+  if (!table || !feed || !banner) return;
 
   table.innerHTML = "";
   feed.innerHTML = "";
   banner.style.display = "none";
   banner.innerText = "";
 
-  if (!snap.exists()) {
-    table.innerHTML = "<tr><td colspan='4'>No match found</td></tr>";
+  const docRef = doc(db, "matches", date);
+  const snap = await getDoc(docRef);
+
+  // 🟡 CASE 1: MATCH FOUND → NORMAL FLOW
+  if (snap.exists()) {
+    const data = snap.data();
+
+    if (data.winner) {
+      banner.style.display = "block";
+      banner.innerText = "🏆 Winner: " + data.winner;
+    }
+
+    data.players?.forEach((p, i) => {
+      table.innerHTML += `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${p.name}</td>
+          <td>${p.runs}</td>
+          <td></td>
+        </tr>
+      `;
+    });
+
+    data.awards?.forEach(a => {
+      const div = document.createElement("div");
+      div.innerText = a;
+      feed.appendChild(div);
+    });
+
     return;
   }
 
-  const data = snap.data();
+  // 🔴 CASE 2: NO MATCH FOUND
+  table.innerHTML = "<tr><td colspan='4'>No match found</td></tr>";
 
-  // 🏆 winner
-  if (data.winner) {
-    banner.style.display = "block";
-    banner.innerText = "🏆 Winner: " + data.winner;
+  // 🟢 ADMIN ONLY: LOAD YESTERDAY
+  if (admin) {
+    const prevDate = getPreviousDate(date);
+
+    const prevSnap = await getDoc(doc(db, "matches", prevDate));
+
+    if (prevSnap.exists()) {
+      const data = prevSnap.data();
+
+      // optional message
+      banner.style.display = "block";
+      banner.innerText = `⚠ No match today, showing previous match (${prevDate})`;
+
+      // load previous match
+      table.innerHTML = "";
+      feed.innerHTML = "";
+
+      data.players?.forEach((p, i) => {
+        table.innerHTML += `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${p.name}</td>
+            <td>${p.runs}</td>
+            <td></td>
+          </tr>
+        `;
+      });
+
+      data.awards?.forEach(a => {
+        const div = document.createElement("div");
+        div.innerText = a;
+        feed.appendChild(div);
+      });
+
+      if (data.winner) {
+        banner.innerText += ` | 🏆 Winner: ${data.winner}`;
+      }
+    }
   }
-
-  // 🏏 players
-  data.players?.forEach((p, i) => {
-    table.innerHTML += `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${p.name}</td>
-        <td>${p.runs}</td>
-        <td></td>
-      </tr>
-    `;
-  });
-
-  // 🎖 awards
-  data.awards?.forEach(a => {
-    const div = document.createElement("div");
-    div.innerText = a;
-    feed.appendChild(div);
-  });
 };
+function getPreviousDate(dateStr) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() - 1);
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}

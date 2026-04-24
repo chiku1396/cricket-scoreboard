@@ -307,12 +307,8 @@ window.loadMatch = async function (date) {
 window.loadSelectedMatch = async function () {
   const dateInput = document.getElementById("matchDate").value;
 
-  if (!dateInput) {
-    alert("Select a date");
-    return;
-  }
+  if (!dateInput) return;
 
-  // convert YYYY-MM-DD → your format (24-4-26 style)
   const d = new Date(dateInput);
 
   const formatted =
@@ -329,14 +325,11 @@ window.loadSelectedMatch = async function () {
 
   const data = snap.data();
 
-  // render players
   renderTable(data.players, false);
 
-  // winner
   document.getElementById("winnerBanner").innerText =
     data.winner ? "🏆 Winner: " + data.winner : "";
 
-  // awards
   const feed = document.getElementById("awardFeed");
   feed.innerHTML = "";
 
@@ -348,3 +341,19 @@ window.loadSelectedMatch = async function () {
     feed.appendChild(div);
   });
 };
+function setTodayInCalendar() {
+  const today = new Date();
+
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+
+  const formatted = `${yyyy}-${mm}-${dd}`;
+
+  const input = document.getElementById("matchDate");
+  input.value = formatted;
+}
+window.addEventListener("load", async () => {
+  setTodayInCalendar();
+  await loadSelectedMatch();
+});

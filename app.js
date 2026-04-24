@@ -40,19 +40,22 @@ const winnerRef = doc(db, "settings", "match");
 let admin = false;
 let playersCache = [];
 
-/* ================= DATE ================= */
+/* ================= DATE KEY FIX ================= */
+function getDateKey(dateStr) {
+  const [yyyy, mm, dd] = dateStr.split("-");
+  return `${parseInt(dd)}-${parseInt(mm)}-${yyyy.slice(-2)}`;
+}
+
+/* ================= INIT DATE ================= */
 function setToday() {
   const input = document.getElementById("matchDate");
+
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, "0");
   const dd = String(today.getDate()).padStart(2, "0");
 
-  const val = `${yyyy}-${mm}-${dd}`;
-  if (input) input.value = val;
-
-  document.getElementById("date").innerText =
-    `${dd}-${mm}-${String(yyyy).slice(-2)}`;
+  if (input) input.value = `${yyyy}-${mm}-${dd}`;
 }
 
 /* ================= LOGIN ================= */
@@ -85,27 +88,30 @@ onAuthStateChanged(auth, user => {
   renderTable(playersCache);
 });
 
-/* ================= PLAYERS ================= */
+/* ================= PLAYERS LIVE ================= */
 onSnapshot(playersCol, snap => {
   playersCache = [];
   snap.forEach(d => playersCache.push({ id: d.id, ...d.data() }));
   renderTable(playersCache);
 });
 
+/* ================= RENDER ================= */
 function renderTable(players) {
   const table = document.getElementById("table");
-  if (!table) return;
-
   table.innerHTML = "";
 
   const batsman = document.getElementById("batsman");
   const bowler = document.getElementById("bowler");
   const catcher = document.getElementById("catch");
 
-  if (batsman) batsman.innerHTML =
-  bowler.innerHTML =
-  catcher.innerHTML =
-    `<option disabled selected>Select</option>`;
+  if (batsman) {
+    batsman.innerHTML =
+      bowler.innerHTML =
+      catcher.innerHTML =
+        `<option disabled selected>Select</option>`;
+  }
+
+  if (!players) return;
 
   players.sort((a, b) => b.runs - a.runs);
 
@@ -135,7 +141,7 @@ function renderTable(players) {
 }
 
 /* ================= UPDATE RUN ================= */
-window.updateRun = async function (id, val) {
+window.updateRun = async (id, val) => {
   const p = playersCache.find(x => x.id === id);
   if (!p) return;
 
@@ -144,72 +150,14 @@ window.updateRun = async function (id, val) {
   });
 };
 
-/* ================= AWARDS ================= */
-window.giveSingleAward = async function (type, points) {
-  const id = document.getElementById(type).value;
-  if (!id) return;
-
-  const p = playersCache.find(x => x.id === id);
-
-  await updateDoc(doc(db, "players", id), {
-    runs: p.runs + points
-  });
-
-  const snap = await getDoc(awardRef);
-  let list = snap.exists() ? snap.data().list || [] : [];
-
-  const label =
-    type === "batsman"
-      ? "🏏 Batsman of the Day"
-      : type === "bowler"
-      ? "🎯 Bowler of the Day"
-      : "🧤 Catch of the Day";
-
-  list.push(`${label}: ${p.name} +${points}`);
-
-  await setDoc(awardRef, { list });
-};
-
-/* ================= AWARD FEED ================= */
-onSnapshot(awardRef, snap => {
-  const feed = document.getElementById("awardFeed");
-  if (!feed) return;
-
-  feed.innerHTML = "";
-
-  if (!snap.exists()) return;
-
-  snap.data().list.forEach(item => {
-    const div = document.createElement("div");
-    div.innerText = item;
-    div.style.color = "gold";
-    div.style.fontWeight = "bold";
-    feed.appendChild(div);
-  });
-});
-
-/* ================= WINNER ================= */
-onSnapshot(winnerRef, snap => {
-  const banner = document.getElementById("winnerBanner");
-  if (!banner) return;
-
-  if (!snap.exists()) {
-    banner.innerText = "";
-    return;
-  }
-
-  const data = snap.data();
-
-  banner.innerText =
-    data.winner ? "🏆 Winner: " + data.winner : "";
-});
-
 /* ================= SAVE MATCH ================= */
 window.saveMatch = async function () {
   if (!admin) return alert("Only admin");
 
   const dateInput = document.getElementById("matchDate").value;
   if (!dateInput) return alert("Select date");
+
+  const key = getDateKey(dateInput);
 
   const snap = await getDocs(playersCol);
 
@@ -219,10 +167,6 @@ window.saveMatch = async function () {
   const winnerSnap = await getDoc(winnerRef);
   const awardSnap = await getDoc(awardRef);
 
-  const d = new Date(dateInput);
-  const key =
-    `${d.getDate()}-${d.getMonth() + 1}-${String(d.getFullYear()).slice(-2)}`;
-
   await setDoc(doc(db, "matches", key), {
     date: key,
     players,
@@ -230,62 +174,38 @@ window.saveMatch = async function () {
     awards: awardSnap.exists() ? awardSnap.data().list || [] : []
   });
 
-  alert("Saved ✅");
+  alert("Match saved ✅");
 };
 
 /* ================= LOAD MATCH ================= */
 window.loadSelectedMatch = async function () {
   const dateInput = document.getElementById("matchDate").value;
 
-  if (!dateInput) {
-    alert("Select a date");
-    return;
-  }
+  if (!dateInput) return;
 
-  // 🔥 convert YYYY-MM-DD → DD-MM-YY
-  const d = new Date(dateInput);
-
-  const key =
-    `${d.getDate()}-${d.getMonth() + 1}-${String(d.getFullYear()).slice(-2)}`;
+  const key = getDateKey(dateInput);
 
   const snap = await getDoc(doc(db, "matches", key));
 
-  // =========================
-  // 🔥 ALWAYS CLEAR UI FIRST
-  // =========================
-  document.getElementById("table").innerHTML = "";
-  document.getElementById("awardFeed").innerHTML = "";
-  document.getElementById("winnerBanner").innerText = "";
+  const table = document.getElementById("table");
+  const feed = document.getElementById("awardFeed");
+  const banner = document.getElementById("winnerBanner");
 
-  // =========================
-  // NO DATA CASE
-  // =========================
+  table.innerHTML = "";
+  feed.innerHTML = "";
+  banner.innerText = "";
+
   if (!snap.exists()) {
-    // optional: show message instead of old data
-    document.getElementById("table").innerHTML =
+    table.innerHTML =
       `<tr><td colspan="4">No data for this date</td></tr>`;
     return;
   }
 
   const data = snap.data();
 
-  // =========================
-  // LOAD TABLE
-  // =========================
   renderTable(data.players || []);
 
-  // =========================
-  // LOAD WINNER (IMPORTANT FIX)
-  // =========================
-  if (data.winner && data.winner.trim() !== "") {
-    document.getElementById("winnerBanner").innerText =
-      "🏆 Winner: " + data.winner;
-  }
-
-  // =========================
-  // LOAD AWARDS (RESET SAFE)
-  // =========================
-  const feed = document.getElementById("awardFeed");
+  banner.innerText = data.winner ? "🏆 Winner: " + data.winner : "";
 
   (data.awards || []).forEach(a => {
     const div = document.createElement("div");
@@ -295,17 +215,12 @@ window.loadSelectedMatch = async function () {
     feed.appendChild(div);
   });
 };
-document.getElementById("matchDate").addEventListener("change", () => {
-  loadSelectedMatch();
-});
+
 /* ================= INIT ================= */
 window.addEventListener("load", () => {
-  const input = document.getElementById("matchDate");
-
-  if (input) {
-    input.addEventListener("change", loadSelectedMatch);
-  }
-
   setToday();
-  loadSelectedMatch();
+
+  setTimeout(() => {
+    loadSelectedMatch();
+  }, 300);
 });

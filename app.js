@@ -177,7 +177,14 @@ window.giveSingleAward = async (type, points) => {
   const snap = await getDoc(awardRef);
   let list = snap.exists() ? snap.data().list || [] : [];
 
-  list.push(`${type}: ${p.name} +${points}`);
+  const label =
+  type === "batsman"
+    ? "🏏 Batsman of the Day"
+    : type === "bowler"
+    ? "🎯 Bowler of the Day"
+    : "🧤 Catch of the Day";
+
+  list.push(`${label}: ${p.name} +${points}`);
 
   await setDoc(awardRef, { list });
 };

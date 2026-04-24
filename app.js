@@ -242,13 +242,15 @@ window.addEventListener("DOMContentLoaded", () => {
 window.loadMatchByDate = async function (date) {
   if (!date) return;
 
+  const docRef = doc(db, "matches", date);
+  const snap = await getDoc(docRef); // ✅ snap is defined here
+
   const table = document.getElementById("table");
   const feed = document.getElementById("awardFeed");
   const banner = document.getElementById("winnerBanner");
 
-  // 🔥 STOP IF ANY ELEMENT MISSING
   if (!table || !feed || !banner) {
-    console.error("❌ Missing HTML elements: check IDs in index.html");
+    console.error("Missing DOM elements");
     return;
   }
 
@@ -264,11 +266,13 @@ window.loadMatchByDate = async function (date) {
 
   const data = snap.data();
 
+  // 🏆 winner
   if (data.winner) {
     banner.style.display = "block";
     banner.innerText = "🏆 Winner: " + data.winner;
   }
 
+  // 🏏 players
   data.players?.forEach((p, i) => {
     table.innerHTML += `
       <tr>
@@ -280,6 +284,7 @@ window.loadMatchByDate = async function (date) {
     `;
   });
 
+  // 🎖 awards
   data.awards?.forEach(a => {
     const div = document.createElement("div");
     div.innerText = a;

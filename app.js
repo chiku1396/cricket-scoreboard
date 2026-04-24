@@ -217,18 +217,7 @@ onSnapshot(awardRef, snap => {
 
 
 
-/* SET WINNER */
-window.setWinner = async function () {
-  const name = document.getElementById("winnerName").value;
 
-  if (!admin) return alert("Only admin");
-
-  if (!name || name.trim() === "") return;
-
-  await setDoc(winnerRef, {
-    winner: name.trim()
-  }, { merge: true });
-};
 window.saveMatch = async function () {
   if (!admin) return alert("Only admin can save match");
 

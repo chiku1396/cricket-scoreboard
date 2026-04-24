@@ -16,7 +16,7 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* 🔥 Firebase Config */
+/* Firebase */
 const firebaseConfig = {
   apiKey: "AIzaSyD1mzmTLVUVLNTvSUINT_puwIstaQ93nwk",
   authDomain: "cricket-scoreboard-final.firebaseapp.com",
@@ -32,85 +32,45 @@ const auth = getAuth(app);
 
 const colRef = collection(db, "players");
 
-/* STATE */
 let admin = false;
 let playersCache = [];
-let lastSnapshot = null;
 
-/* ---------------- DATE ---------------- */
-function setDate() {
-  const d = new Date();
-  const formatted =
-    d.getDate() + "-" +
-    (d.getMonth() + 1) + "-" +
-    String(d.getFullYear()).slice(-2);
+/* DATE */
+const d = new Date();
+document.getElementById("date").innerText =
+`${d.getDate()}-${d.getMonth() + 1}-${String(d.getFullYear()).slice(-2)}`;
 
-  document.getElementById("date").innerText = formatted;
-}
-setDate();
-
-/* ---------------- AUTH ---------------- */
-
-window.login = async function () {
-  let email = document.getElementById("email").value;
-  let password = document.getElementById("password").value;
-
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-
-    // hide login popup after login
-    document.getElementById("loginPopup").style.display = "none";
-
-  } catch (error) {
-    alert(error.message);
-  }
+/* AUTH */
+window.login = async () => {
+  await signInWithEmailAndPassword(auth, email.value, password.value);
+  loginPopup.style.display = "none";
 };
 
-window.logout = function () {
-  signOut(auth).then(() => {
-    location.reload();
-  });
-};
+window.logout = () => signOut(auth).then(() => location.reload());
 
-window.toggleLogin = function () {
-  let popup = document.getElementById("loginPopup");
-  popup.style.display = popup.style.display === "block" ? "none" : "block";
+window.toggleLogin = () => {
+  loginPopup.style.display =
+    loginPopup.style.display === "block" ? "none" : "block";
 };
-
-/* ---------------- AUTH STATE ---------------- */
 
 onAuthStateChanged(auth, user => {
   admin = !!user;
 
-  document.getElementById("adminBtn").style.display = user ? "none" : "block";
-  document.getElementById("logoutBtn").style.display = user ? "block" : "none";
-  document.getElementById("awardsBox").style.display = user ? "block" : "none";
-  document.getElementById("resetAwardsBtn").style.display = user ? "block" : "none";
-
-  document.getElementById("loginPopup").style.display = "none";
+  adminBtn.style.display = user ? "none" : "block";
+  logoutBtn.style.display = user ? "block" : "none";
+  winnerControl.style.display = user ? "block" : "none";
 });
 
-/* ---------------- PLAYERS ---------------- */
-
-onSnapshot(colRef, snapshot => {
-  lastSnapshot = snapshot;
-  renderUI(snapshot);
-});
-
-function renderUI(snapshot) {
+/* PLAYERS */
+onSnapshot(colRef, snap => {
   const table = document.getElementById("table");
   table.innerHTML = "";
 
-  playersCache = [];
+  let players = [];
 
-  snapshot.forEach(docSnap => {
-    playersCache.push({
-      id: docSnap.id,
-      ...docSnap.data()
-    });
-  });
+  snap.forEach(d => players.push({ id: d.id, ...d.data() }));
+  playersCache = players;
 
-  let players = [...playersCache];
   players.sort((a, b) => b.runs - a.runs);
 
   const batsman = document.getElementById("batsman");
@@ -118,133 +78,105 @@ function renderUI(snapshot) {
   const catcher = document.getElementById("catch");
 
   batsman.innerHTML =
-    bowler.innerHTML =
-    catcher.innerHTML =
-    `<option value="" disabled selected>Select Player</option>`;
+  bowler.innerHTML =
+  catcher.innerHTML =
+    `<option disabled selected>Select</option>`;
 
   players.forEach((p, i) => {
+
+    // ✅ FIX: admin check ensures buttons appear
+    const actions = admin
+      ? `<button onclick="updateRun('${p.id}',2)">+2</button>
+         <button onclick="updateRun('${p.id}',-3)">-3</button>`
+      : "";
+
     table.innerHTML += `
       <tr>
         <td>${i + 1}</td>
         <td>${p.name}</td>
         <td>${p.runs}</td>
-        <td>
-          ${admin ? `
-            <button onclick="updateRun('${p.id}', 2)">+2</button>
-            <button onclick="updateRun('${p.id}', -3)">-3</button>
-          ` : ""}
-        </td>
+        <td>${actions}</td>
       </tr>
     `;
 
-    let opt = `<option value="${p.id}">${p.name}</option>`;
+    const opt = `<option value="${p.id}">${p.name}</option>`;
     batsman.innerHTML += opt;
     bowler.innerHTML += opt;
     catcher.innerHTML += opt;
   });
-}
+});
 
-/* ---------------- UPDATE RUN ---------------- */
-
-window.updateRun = async function (id, val) {
-  let player = playersCache.find(p => p.id === id);
-  if (!player) return;
+/* UPDATE RUN */
+window.updateRun = async (id, val) => {
+  const p = playersCache.find(x => x.id === id);
+  if (!p) return;
 
   await updateDoc(doc(db, "players", id), {
-    runs: player.runs + val
+    runs: p.runs + val
   });
 };
 
-/* ---------------- AWARDS ---------------- */
-
+/* AWARDS */
 const awardRef = doc(db, "settings", "awards");
 const winnerRef = doc(db, "settings", "match");
 
-window.giveSingleAward = async function (type, points) {
-  const select = document.getElementById(type);
-  const playerId = select.value;
+window.giveSingleAward = async (type, points) => {
+  const id = document.getElementById(type).value;
+  if (!id) return;
 
-  if (!playerId) return alert("Select player");
+  const p = playersCache.find(x => x.id === id);
 
-  let player = playersCache.find(p => p.id === playerId);
-  if (!player) return;
-
-  await updateDoc(doc(db, "players", playerId), {
-    runs: player.runs + points
+  await updateDoc(doc(db, "players", id), {
+    runs: p.runs + points
   });
-
-  const text =
-    `${type === "batsman" ? "🏏 Batsman of the Day" :
-      type === "bowler" ? "🎯 Bowler of the Day" :
-      "🧤 Catch of the Day"}: ${player.name} +${points}`;
 
   const snap = await getDoc(awardRef);
   let list = snap.exists() ? snap.data().list || [] : [];
 
-  list.push(text);
+  list.push(`${type}: ${p.name} +${points}`);
 
   await setDoc(awardRef, { list });
 };
 
-/* ---------------- AWARD FEED ---------------- */
-
+/* AWARD FEED */
 onSnapshot(awardRef, snap => {
   const feed = document.getElementById("awardFeed");
   feed.innerHTML = "";
 
-  if (snap.exists()) {
-    (snap.data().list || []).forEach(item => {
-      const div = document.createElement("div");
-      div.innerHTML = item;
-      feed.appendChild(div);
-    });
-  }
+  if (!snap.exists()) return;
+
+  snap.data().list.forEach(item => {
+    const div = document.createElement("div");
+    div.innerText = item;
+    feed.appendChild(div);
+  });
 });
 
-/* ---------------- WINNER (FIXED) ---------------- */
-
+/* WINNER (NO DEFAULT TEXT ANYMORE) */
 onSnapshot(winnerRef, snap => {
   const banner = document.getElementById("winnerBanner");
 
   if (!snap.exists()) {
-    banner.style.display = "block";
-    banner.innerText = "🏆 Winner: Not declared yet";
+    banner.innerText = "";
     return;
   }
 
   const data = snap.data();
 
-  if (data.winner && data.winner.trim() !== "") {
-    banner.style.display = "block";
-    banner.innerText = "🏆 Winner: " + data.winner;
-  } else {
-    banner.style.display = "block";
-    banner.innerText = "🏆 Winner: Not declared yet";
+  if (!data.winner || data.winner.trim() === "") {
+    banner.innerText = "";
+    return;
   }
+
+  banner.innerText = "🏆 Winner: " + data.winner;
 });
 
-/* ---------------- SET WINNER (FIXED) ---------------- */
+/* SET WINNER */
+window.setWinner = async () => {
+  if (!admin) return;
 
-window.setWinner = async function () {
-  const name = document.getElementById("winnerName").value;
+  const name = winnerName.value.trim();
+  if (!name) return;
 
-  if (!admin) return alert("Only admin can set winner");
-
-  if (!name || name.trim() === "") return alert("Enter winner name");
-
-  await setDoc(winnerRef, {
-    winner: name.trim()
-  }, { merge: true });
-};
-
-/* ---------------- RESET ---------------- */
-
-window.resetAwards = async function () {
-  if (!admin) return alert("Only admin");
-
-  await setDoc(awardRef, { list: [] });
-
-  await setDoc(winnerRef, {
-    winner: ""
-  }, { merge: true });
+  await setDoc(winnerRef, { winner: name }, { merge: true });
 };

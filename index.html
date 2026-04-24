@@ -8,11 +8,13 @@
 
 <h1>🏏 Daily Run Scoreboard</h1>
 
-<!-- 🏆 WINNER TOP -->
-<div id="winnerBanner">🏆 Winner: Not declared yet</div>
+<!-- 🏆 AWARDS -->
+<h2>🏆 Awards</h2>
 
-<!-- 🏆 AWARD FEED (NEW) -->
-<div id="awardFeed" style="background:#1e293b; padding:10px; margin:10px auto; width:85%; border-radius:10px;"></div>
+<div id="awardFeed"></div>
+
+<!-- 🏆 WINNER (NO DEFAULT TEXT NOW) -->
+<div id="winnerBanner"></div>
 
 <!-- 📅 TOP BAR -->
 <div style="display:flex;justify-content:space-between; padding:10px;">
@@ -28,7 +30,13 @@
 </div>
 
 <!-- 🚪 LOGOUT -->
-<button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
+<button id="logoutBtn" onclick="logout()">Logout</button>
+
+<!-- 🏆 WINNER CONTROL -->
+<div id="winnerControl" style="display:none;">
+  <input id="winnerName" placeholder="Enter Winner Name">
+  <button onclick="setWinner()">Set Winner</button>
+</div>
 
 <table>
   <thead>
@@ -42,36 +50,27 @@
   <tbody id="table"></tbody>
 </table>
 
-<h2>🏆 Awards</h2>
-
-<div class="awards" id="awardsBox" style="display:none;">
+<div class="awards">
 
   <div class="award-row">
-    <label>🏏 Batsman of the Day</label>
+    <label>🏏 Batsman</label>
     <select id="batsman"></select>
     <button onclick="giveSingleAward('batsman',1)">+1</button>
     <button onclick="giveSingleAward('batsman',2)">+2</button>
   </div>
 
   <div class="award-row">
-    <label>🎯 Bowler of the Day</label>
+    <label>🎯 Bowler</label>
     <select id="bowler"></select>
     <button onclick="giveSingleAward('bowler',1)">+1</button>
     <button onclick="giveSingleAward('bowler',2)">+2</button>
   </div>
 
   <div class="award-row">
-    <label>🧤 Catch of the Day</label>
+    <label>🧤 Catch</label>
     <select id="catch"></select>
     <button onclick="giveSingleAward('catch',1)">+1</button>
     <button onclick="giveSingleAward('catch',2)">+2</button>
-  </div>
-
-  <!-- 🏆 RESET BUTTON -->
-  <div class="award-row">
-    <button id="resetAwardsBtn" onclick="resetAwards()" style="display:none; background:red; color:white;">
-      Reset Awards
-    </button>
   </div>
 
 </div>

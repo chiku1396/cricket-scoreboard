@@ -229,11 +229,10 @@ function getTodayDate() {
 
 /* INIT */
 window.addEventListener("DOMContentLoaded", () => {
-  setTodayDate();
+  const dateEl = document.getElementById("date");
 
-  const dateInput = document.getElementById("date");
-  if (dateInput) {
-    dateInput.addEventListener("change", (e) => {
+  if (dateEl) {
+    dateEl.addEventListener("change", (e) => {
       loadMatchByDate(e.target.value);
     });
   }
@@ -243,13 +242,15 @@ window.addEventListener("DOMContentLoaded", () => {
 window.loadMatchByDate = async function (date) {
   if (!date) return;
 
-  const snap = await getDoc(doc(db, "matches", date));
-
   const table = document.getElementById("table");
   const feed = document.getElementById("awardFeed");
   const banner = document.getElementById("winnerBanner");
 
-  if (!table || !feed || !banner) return;
+  // 🔥 STOP IF ANY ELEMENT MISSING
+  if (!table || !feed || !banner) {
+    console.error("❌ Missing HTML elements: check IDs in index.html");
+    return;
+  }
 
   table.innerHTML = "";
   feed.innerHTML = "";

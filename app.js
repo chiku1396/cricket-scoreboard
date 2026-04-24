@@ -81,14 +81,20 @@ onAuthStateChanged(auth, user => {
 window.loadByDate = async function () {
   const date = getDateKey();
 
+  if (!date) {
+    alert("Please select a date");
+    return;
+  }
+
   const snap = await getDoc(matchRef(date));
 
   if (!snap.exists()) {
-    alert("No data for this date");
+    alert("No match found for this date");
     playersCache = [];
-    renderTable(playersCache);
+    renderTable([]);
     renderAwards([]);
     renderWinner("");
+    attachLiveListener(date);
     return;
   }
 
@@ -118,11 +124,13 @@ onSnapshot(matchRef(getDateKey()), snap => {
 
 /* SAVE MATCH */
 window.saveMatch = async function () {
-  await setDoc(matchRef(getDateKey()), {
+  const date = getDateKey();
+
+  await setDoc(matchRef(date), {
     players: playersCache
   }, { merge: true });
 
-  alert("Match saved");
+  alert("Saved for " + date);
 };
 
 /* UPDATE RUN */
@@ -194,8 +202,9 @@ function renderWinner(name) {
 }
 let unsub = null;
 
+
 function attachLiveListener(date) {
-  if (unsub) unsub(); // remove old listener
+  if (unsub) unsub();
 
   unsub = onSnapshot(matchRef(date), snap => {
     if (!snap.exists()) return;
@@ -208,4 +217,7 @@ function attachLiveListener(date) {
     renderAwards(data.awards || []);
     renderWinner(data.winner || "");
   });
+}
+function matchRef(date) {
+  return doc(db, "matches", date);
 }

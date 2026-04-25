@@ -91,9 +91,9 @@ onAuthStateChanged(auth, async (user) => {
     console.log("today loadMatchByDate called");
   }
 
-  renderTable(playersCache, admin);
+  //renderTable(playersCache, admin);
   console.log("Render → isAdmin =", admin);
-  console.log("renderTable called");
+  //console.log("renderTable called");
 });
 window.resetAwards = async function () {
   if (!admin) return;
@@ -359,21 +359,20 @@ function getTodayDate() {
 }
 
 /* INIT */
-window.addEventListener("DOMContentLoaded", () => {
-  const dateEl = document.getElementById("date");
+window.addEventListener("DOMContentLoaded", async () => {
+  const dateInput = document.getElementById("date");
 
-  if (dateEl) {
-    dateEl.addEventListener("change", (e) => {
-      //if (admin) return;
-      loadMatchByDate(e.target.value);
-    console.log("on date change loadMatchByDate called");
-    });
-  }
+  const today = getTodayDate();
+  if (dateInput) dateInput.value = today;
+
+  await loadMatchByDate(today);
+
+  console.log("Initial load complete → today match loaded");
 });
-window.onload = () => {
-  setTodayDate();
+// window.onload = () => {
+//   setTodayDate();
 
-};
+// };
 /* LOAD MATCH BY DATE */
 window.loadMatchByDate = async function (date) {
   if (!date) return;

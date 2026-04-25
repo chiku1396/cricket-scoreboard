@@ -50,50 +50,34 @@ window.toggleLogin = () => {
 
 /* AUTH */
 onAuthStateChanged(auth, async (user) => {
-  admin = user ? true : false;  
+  admin = !!user;
 
   const dateInput = document.getElementById("date");
+  const today = getTodayDate();
 
-  // Toggle buttons
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
 
-  document.getElementById("awardsBox").style.display = user ? "block" : "none";
-  resetAwardsBtn.style.display = user ? "block" : "none";
+  const d = new Date(today);
+  d.setDate(d.getDate() - 1);
 
-  const today = getTodayDate();
+  const yesterday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
   if (admin) {
-    // ✅ Set today internally
+    // 🟢 ADMIN = LIVE MODE
     if (dateInput) dateInput.value = today;
 
-    // ❌ Hide date picker
-    //if (dateInput) dateInput.style.display = "none";
-
-    // 📅 Calculate yesterday
-    const d = new Date(today);
-    d.setDate(d.getDate() - 1);
-
-    const yesterday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-
-    // 🔥 Load yesterday data
+    loadLivePlayers();   // 🔥 LIVE STREAM ONLY FOR ADMIN
     await loadMatchByDate(yesterday);
-    console.log("yesterday loadMatchByDate called");
 
   } else {
-    // 👤 Normal user
-    if (dateInput) {
-      dateInput.style.display = "block";
-      dateInput.value = today;
-    }
+    // 🔵 VIEWER = DATE MODE ONLY
+    if (dateInput) dateInput.value = today;
 
-    loadMatchByDate(today);
-    console.log("today loadMatchByDate called");
+    await loadMatchByDate(today);
   }
 
   renderTable(playersCache, admin);
-  console.log("Render → isAdmin =", admin);
-  console.log("renderTable called");
 });
 window.resetAwards = async function () {
   if (!admin) return;
@@ -277,21 +261,34 @@ window.giveSingleAward = async function (type, points) {
 };
 
 /* AWARD FEED */
-onSnapshot(awardRef, snap => {
-  const feed = document.getElementById("awardFeed");
-  if (!feed) return;
+// onSnapshot(awardRef, snap => {
+//   const feed = document.getElementById("awardFeed");
+//   if (!feed) return;
 
-  feed.innerHTML = "";
+//   feed.innerHTML = "";
 
-  if (!snap.exists()) return;
+//   if (!snap.exists()) return;
 
-  snap.data().list.forEach(item => {
-    const div = document.createElement("div");
-    div.innerText = item;
-    feed.appendChild(div);
+//   snap.data().list.forEach(item => {
+//     const div = document.createElement("div");
+//     div.innerText = item;
+//     feed.appendChild(div);
+//   });
+// });
+
+function loadLivePlayers() {
+  onSnapshot(colRef, snap => {
+    if (!admin) return; // safety
+
+    playersCache = [];
+
+    snap.forEach(d => {
+      playersCache.push({ id: d.id, ...d.data() });
+    });
+
+    renderTable(playersCache, true);
   });
-});
-
+}
 /* SAVE MATCH */
 window.saveMatch = async function () {
   if (!admin) return alert("Only admin can save match");
@@ -401,6 +398,10 @@ window.loadMatchByDate = async function (date) {
   }
 
   const data = snap.data();
+    // 🔥 FORCE VIEWER DATA
+  if (!admin) {
+    playersCache = data.players || [];
+  }
 
   // 🏆 winner
   if (data.winner) {

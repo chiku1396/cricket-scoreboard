@@ -310,13 +310,13 @@ window.saveMatch = async function () {
       runs: p.runs
     }));
 
-    await setDoc(doc(db, "matches", date), {
-      date,
-      winner,
-      players,
-      awards,
-      timestamp: Date.now()
-    });
+await setDoc(doc(db, "matches", date), {
+  date,
+  winner,
+  players,
+  awards,
+  timestamp: Date.now()
+}, { merge: true });
 
     alert("Match saved successfully!");
 
@@ -481,19 +481,31 @@ window.uploadFile = async function () {
   const file = document.getElementById("fileInput").files[0];
   if (!file) return alert("Select file");
 
+  const date = document.getElementById("date").value;
+  if (!date) return alert("Select date first");
+
   const reader = new FileReader();
 
   reader.onload = async function () {
     const base64 = reader.result;
 
-    const date = document.getElementById("date").value;
+    try {
+      await updateDoc(doc(db, "matches", date), {
+        fileBase64: base64,
+        fileType: file.type
+      });
 
-    await setDoc(doc(db, "matches", date), {
-      fileBase64: base64,
-      fileType: file.type
-    }, { merge: true });
+      alert("Uploaded!");
+    } catch (err) {
+      console.log("updateDoc failed, creating doc...");
 
-    alert("Uploaded!");
+      await setDoc(doc(db, "matches", date), {
+        fileBase64: base64,
+        fileType: file.type
+      }, { merge: true });
+
+      alert("Uploaded!");
+    }
   };
 
   reader.readAsDataURL(file);

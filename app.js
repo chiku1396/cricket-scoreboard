@@ -50,32 +50,50 @@ window.toggleLogin = () => {
 
 /* AUTH */
 onAuthStateChanged(auth, async (user) => {
-  admin = user ? true : false;
+  admin = user ? true : false;  
 
   const dateInput = document.getElementById("date");
-  const today = getTodayDate();
 
+  // Toggle buttons
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
 
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
   resetAwardsBtn.style.display = user ? "block" : "none";
 
+  const today = getTodayDate();
+
   if (admin) {
-    // 📅 admin always opens YESTERDAY
+    // ✅ Set today internally
+    if (dateInput) dateInput.value = today;
+
+    // ❌ Hide date picker
+    //if (dateInput) dateInput.style.display = "none";
+
+    // 📅 Calculate yesterday
     const d = new Date(today);
     d.setDate(d.getDate() - 1);
 
     const yesterday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
-    dateInput.value = yesterday;
-
+    // 🔥 Load yesterday data
     await loadMatchByDate(yesterday);
+    console.log("yesterday loadMatchByDate called");
 
   } else {
-    dateInput.value = today;
-    await loadMatchByDate(today);
+    // 👤 Normal user
+    if (dateInput) {
+      dateInput.style.display = "block";
+      dateInput.value = today;
+    }
+
+    loadMatchByDate(today);
+    console.log("today loadMatchByDate called");
   }
+
+  renderTable(playersCache, admin);
+  console.log("Render → isAdmin =", admin);
+  console.log("renderTable called");
 });
 window.resetAwards = async function () {
   if (!admin) return;
@@ -115,18 +133,18 @@ window.resetAwards = async function () {
   }
 };
 /* PLAYERS */
-// onSnapshot(colRef, snap => {
-//   playersCache = [];
+onSnapshot(colRef, snap => {
+  playersCache = [];
 
-//   snap.forEach(d => {
-//     playersCache.push({ id: d.id, ...d.data() });
-//   });
+  snap.forEach(d => {
+    playersCache.push({ id: d.id, ...d.data() });
+  });
 
-//    // 🔥 always use latest admin value
-//   setTimeout(() => {
-//     renderTable(playersCache, admin);
-//   }, 0);
-// });
+   // 🔥 always use latest admin value
+  setTimeout(() => {
+    renderTable(playersCache, admin);
+  }, 0);
+});
 
 function renderTable(players, isAdmin) {
   const winCaptain = document.getElementById("winCaptain");
@@ -221,26 +239,12 @@ window.giveCaptainAward = async function (type, points) {
 };
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
-  console.log("RUN UPDATE:", id, val);
-  const date = document.getElementById("date").value;
-  const matchRef = doc(db, "matches", date);
+  const p = playersCache.find(x => x.id === id);
+  if (!p) return;
 
-  const snap = await getDoc(matchRef);
-  if (!snap.exists()) return;
-
-  const data = snap.data();
-  const players = data.players || [];
-
-  const updatedPlayers = players.map(p =>
-    p.id === id ? { ...p, runs: p.runs + val } : p
-  );
-
-  await updateDoc(matchRef, {
-    players: updatedPlayers
+  await updateDoc(doc(db, "players", id), {
+    runs: p.runs + val
   });
-
-  // 🔥 refresh UI after update
-  loadMatchByDate(date);
 };
 
 /* AWARDS */
@@ -397,8 +401,6 @@ window.loadMatchByDate = async function (date) {
   }
 
   const data = snap.data();
-  const players = data.players || [];
-  renderTable(players, admin);
 
   // 🏆 winner
   if (data.winner) {

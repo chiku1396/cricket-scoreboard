@@ -151,6 +151,51 @@ window.resetAwards = async function () {
     alert("Reset failed completely");
   }
 };
+window.resetScore = async function () {
+  if (!admin) return alert("Only admin can reset score");
+
+  const today = document.getElementById("date").value;
+
+  try {
+    // 📅 get yesterday
+    const d = new Date(today);
+    d.setDate(d.getDate() - 1);
+
+    const y = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+    const ySnap = await getDoc(doc(db, "matches", y));
+
+    if (!ySnap.exists()) {
+      alert("Yesterday data not found");
+      return;
+    }
+
+    const yData = ySnap.data();
+
+    // 🔁 reset players score
+    for (let p of playersCache) {
+      const old = yData.players.find(x => x.name === p.name);
+
+      if (old) {
+        await updateDoc(doc(db, "players", p.id), {
+          runs: old.runs
+        });
+      }
+    }
+
+    // 🧹 clear awards
+    await setDoc(awardRef, { list: [] });
+
+    // 🧹 clear winner
+    await setDoc(winnerRef, { winner: "" });
+
+    alert("Score reset to yesterday!");
+
+  } catch (err) {
+    console.error(err);
+    alert("Reset failed");
+  }
+};
 /* PLAYERS */
 onSnapshot(colRef, snap => {
   playersCache = [];

@@ -90,7 +90,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   renderTable(playersCache, admin);
-  console.log("Render → isAdmin =", isAdmin);
+  console.log("Render → isAdmin =", admin);
 });
 window.resetAwards = async function () {
   if (!admin) return;

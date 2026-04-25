@@ -50,50 +50,32 @@ window.toggleLogin = () => {
 
 /* AUTH */
 onAuthStateChanged(auth, async (user) => {
-  admin = user ? true : false;  
+  admin = user ? true : false;
 
   const dateInput = document.getElementById("date");
+  const today = getTodayDate();
 
-  // Toggle buttons
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
 
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
   resetAwardsBtn.style.display = user ? "block" : "none";
 
-  const today = getTodayDate();
-
   if (admin) {
-    // ✅ Set today internally
-    if (dateInput) dateInput.value = today;
-
-    // ❌ Hide date picker
-    //if (dateInput) dateInput.style.display = "none";
-
-    // 📅 Calculate yesterday
+    // 📅 admin always opens YESTERDAY
     const d = new Date(today);
     d.setDate(d.getDate() - 1);
 
     const yesterday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
-    // 🔥 Load yesterday data
+    dateInput.value = yesterday;
+
     await loadMatchByDate(yesterday);
-    console.log("yesterday loadMatchByDate called");
 
   } else {
-    // 👤 Normal user
-    if (dateInput) {
-      dateInput.style.display = "block";
-      dateInput.value = today;
-    }
-
-    loadMatchByDate(today);
-    console.log("today loadMatchByDate called");
+    dateInput.value = today;
+    await loadMatchByDate(today);
   }
-
-  renderTable(playersCache, admin);
-  console.log("Render → isAdmin =", admin);
-  console.log("renderTable called");
 });
 window.resetAwards = async function () {
   if (!admin) return;
@@ -239,25 +221,27 @@ window.giveCaptainAward = async function (type, points) {
 };
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
-  const date = document.getElementById("date").value;
-  const matchRef = doc(db, "matches", date);
+  if (!admin) return;
 
-  const snap = await getDoc(matchRef);
+  const date = document.getElementById("date").value;
+  const ref = doc(db, "matches", date);
+
+  const snap = await getDoc(ref);
   if (!snap.exists()) return;
 
   const data = snap.data();
-  const players = data.players || [];
 
-  const updatedPlayers = players.map(p =>
-    p.id === id ? { ...p, runs: p.runs + val } : p
-  );
-
-  await updateDoc(matchRef, {
-    players: updatedPlayers
+  const players = (data.players || []).map(p => {
+    if (p.id === id) {
+      return { ...p, runs: p.runs + val };
+    }
+    return p;
   });
 
-  // 🔥 refresh UI after update
-  loadMatchByDate(date);
+  await updateDoc(ref, { players });
+
+  // 🔥 IMPORTANT: reload for admin sync
+  await loadMatchByDate(date);
 };
 
 /* AWARDS */

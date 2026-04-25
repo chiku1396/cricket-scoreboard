@@ -91,9 +91,9 @@ onAuthStateChanged(auth, async (user) => {
     console.log("today loadMatchByDate called");
   }
 
-  //renderTable(playersCache, admin);
+  renderTable(playersCache, admin);
   console.log("Render → isAdmin =", admin);
-  //console.log("renderTable called");
+  console.log("renderTable called");
 });
 window.resetAwards = async function () {
   if (!admin) return;
@@ -133,18 +133,18 @@ window.resetAwards = async function () {
   }
 };
 /* PLAYERS */
-onSnapshot(colRef, snap => {
-  playersCache = [];
+// onSnapshot(colRef, snap => {
+//   playersCache = [];
 
-  snap.forEach(d => {
-    playersCache.push({ id: d.id, ...d.data() });
-  });
+//   snap.forEach(d => {
+//     playersCache.push({ id: d.id, ...d.data() });
+//   });
 
-   // 🔥 always use latest admin value
-  setTimeout(() => {
-    renderTable(playersCache, admin);
-  }, 0);
-});
+//    // 🔥 always use latest admin value
+//   setTimeout(() => {
+//     renderTable(playersCache, admin);
+//   }, 0);
+// });
 
 function renderTable(players, isAdmin) {
   const winCaptain = document.getElementById("winCaptain");
@@ -239,12 +239,25 @@ window.giveCaptainAward = async function (type, points) {
 };
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
-  const p = playersCache.find(x => x.id === id);
-  if (!p) return;
+  const date = document.getElementById("date").value;
+  const matchRef = doc(db, "matches", date);
 
-  await updateDoc(doc(db, "players", id), {
-    runs: p.runs + val
+  const snap = await getDoc(matchRef);
+  if (!snap.exists()) return;
+
+  const data = snap.data();
+  const players = data.players || [];
+
+  const updatedPlayers = players.map(p =>
+    p.id === id ? { ...p, runs: p.runs + val } : p
+  );
+
+  await updateDoc(matchRef, {
+    players: updatedPlayers
   });
+
+  // 🔥 refresh UI after update
+  loadMatchByDate(date);
 };
 
 /* AWARDS */
@@ -359,20 +372,21 @@ function getTodayDate() {
 }
 
 /* INIT */
-window.addEventListener("DOMContentLoaded", async () => {
-  const dateInput = document.getElementById("date");
+window.addEventListener("DOMContentLoaded", () => {
+  const dateEl = document.getElementById("date");
 
-  const today = getTodayDate();
-  if (dateInput) dateInput.value = today;
-
-  await loadMatchByDate(today);
-
-  console.log("Initial load complete → today match loaded");
+  if (dateEl) {
+    dateEl.addEventListener("change", (e) => {
+      //if (admin) return;
+      loadMatchByDate(e.target.value);
+    console.log("on date change loadMatchByDate called");
+    });
+  }
 });
-// window.onload = () => {
-//   setTodayDate();
+window.onload = () => {
+  setTodayDate();
 
-// };
+};
 /* LOAD MATCH BY DATE */
 window.loadMatchByDate = async function (date) {
   if (!date) return;
@@ -400,6 +414,8 @@ window.loadMatchByDate = async function (date) {
   }
 
   const data = snap.data();
+  const players = data.players || [];
+  renderTable(players, admin);
 
   // 🏆 winner
   if (data.winner) {

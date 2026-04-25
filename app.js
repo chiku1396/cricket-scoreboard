@@ -10,6 +10,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+import {
   getAuth,
   signInWithEmailAndPassword,
   signOut,
@@ -29,7 +36,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-
+const storage = getStorage(app);
 const colRef = collection(db, "players");
 
 let admin = false;
@@ -64,6 +71,20 @@ onAuthStateChanged(auth, async (user) => {
   const today = getTodayDate();
 
   if (admin) {
+    let uploadBox = document.getElementById("uploadBox");
+
+  if (!uploadBox) {
+    uploadBox = document.createElement("div");
+    uploadBox.id = "uploadBox";
+    uploadBox.style.margin = "10px";
+
+    uploadBox.innerHTML = `
+      <input type="file" id="fileInput" accept="image/*,application/pdf" />
+      <button onclick="uploadFile()">Upload</button>
+    `;
+
+    document.body.insertBefore(uploadBox, document.querySelector("table"));
+  }
     // ✅ Set today internally
     if (dateInput) dateInput.value = today;
 
@@ -385,6 +406,10 @@ window.loadMatchByDate = async function (date) {
   const feed = document.getElementById("awardFeed");
   const banner = document.getElementById("winnerBanner");
 
+// ✅ ADD HERE (TOP - BEFORE RENDERING NEW DATA)
+  const oldFile = document.getElementById("matchFile");
+  if (oldFile) oldFile.remove();
+
   if (!table || !feed || !banner) {
     console.error("Missing DOM elements");
     return;
@@ -433,4 +458,54 @@ window.loadMatchByDate = async function (date) {
     div.innerText = a;
     feed.appendChild(div);
   });
+
+  // 📄 FILE DISPLAY
+if (data.fileUrl) {
+  const fileDiv = document.createElement("div");
+  fileDiv.style.margin = "15px";
+
+  if (data.fileUrl.includes(".pdf")) {
+    fileDiv.innerHTML = `
+      <iframe src="${data.fileUrl}" width="90%" height="500px"></iframe>
+    `;
+  } else {
+    fileDiv.innerHTML = `
+      <img src="${data.fileUrl}" style="max-width:90%; border-radius:10px;" />
+    `;
+  }
+
+  document.body.appendChild(fileDiv);
+}
+const fileDiv = document.createElement("div");
+fileDiv.id = "matchFile";
+};
+
+window.uploadFile = async function () {
+  if (!admin) return alert("Only admin can upload");
+
+  const fileInput = document.getElementById("fileInput");
+  const file = fileInput.files[0];
+
+  if (!file) return alert("Select file first");
+
+  const date = document.getElementById("date").value;
+
+  try {
+    const storageRef = ref(storage, `matches/${date}/${file.name}`);
+
+    await uploadBytes(storageRef, file);
+
+    const url = await getDownloadURL(storageRef);
+
+    // save URL in Firestore
+    await setDoc(doc(db, "matches", date), {
+      fileUrl: url
+    }, { merge: true });
+
+    alert("File uploaded successfully!");
+
+  } catch (err) {
+    console.error(err);
+    alert("Upload failed");
+  }
 };

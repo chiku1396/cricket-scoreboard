@@ -305,11 +305,28 @@ window.saveMatch = async function () {
     const awardSnap = await getDoc(awardRef);
     const awards = awardSnap.exists() ? awardSnap.data().list || [] : [];
 
-players: playersCache.map((p, index) => ({
-  id: p.id || `p${index}`,
-  name: p.name,
-  runs: p.runs || 0
-}))
+    // ✅ FIX: directly use playersCache (NO data variable)
+    const players = playersCache.map((p, index) => ({
+      id: p.id || `p${index}`,
+      name: p.name,
+      runs: p.runs || 0
+    }));
+
+    await setDoc(doc(db, "matches", date), {
+      date,
+      winner,
+      players,
+      awards,
+      timestamp: Date.now()
+    }, { merge: true });
+
+    alert("Match saved successfully!");
+
+  } catch (err) {
+    console.error(err);
+    alert("Failed to save match");
+  }
+};
 
 const players = data.players || [];
 

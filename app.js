@@ -434,18 +434,24 @@ window.loadMatchByDate = async function (date) {
     feed.appendChild(div);
   });
   // 📂 show uploaded file
-if (data.fileBase64) {
+if (data.fileBase64 && data.fileType && data.fileType.includes("image")) {
   const div = document.createElement("div");
   div.style.marginTop = "10px";
 
-  if (data.fileType && data.fileType.includes("image")) {
-    div.innerHTML = `
-  <h3>📷 Match Image</h3>
-  <img src="${data.fileBase64}"
-       onclick="openImagePreview('${data.fileBase64}')"
-       style="max-width:90%; border-radius:10px; margin-top:10px; cursor:pointer;" />
-`;
-  } 
+  div.innerHTML = `
+    <button onclick="openImagePreview('${data.fileBase64}')" 
+      style="
+        padding:10px 15px;
+        border:none;
+        border-radius:8px;
+        background:#007bff;
+        color:white;
+        cursor:pointer;
+        font-weight:bold;
+      ">
+      🏏 View Scorecard
+    </button>
+  `;
   feed.appendChild(div);
 }
 };

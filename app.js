@@ -78,6 +78,7 @@ onAuthStateChanged(auth, async (user) => {
 
     // 🔥 Load yesterday data
     loadMatchByDate(yesterday);
+    console.log("yesterday loadMatchByDate called");
 
   } else {
     // 👤 Normal user
@@ -87,10 +88,12 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     loadMatchByDate(today);
+    console.log("today loadMatchByDate called");
   }
 
   renderTable(playersCache, admin);
   console.log("Render → isAdmin =", admin);
+  console.log("renderTable called");
 });
 window.resetAwards = async function () {
   if (!admin) return;
@@ -298,6 +301,7 @@ window.addEventListener("load", () => {
 
   if (dateInput && dateInput.value) {
     loadMatchByDate(dateInput.value);
+    console.log("on load loadMatchByDate called");
   }
 });
 
@@ -318,6 +322,7 @@ window.addEventListener("DOMContentLoaded", () => {
     dateEl.addEventListener("change", (e) => {
       //if (admin) return;
       loadMatchByDate(e.target.value);
+    console.log("on date change loadMatchByDate called");
     });
   }
 });
@@ -361,6 +366,12 @@ window.loadMatchByDate = async function (date) {
 
   // 🏏 players
   data.players?.forEach((p, i) => {
+    const actions = admin
+    ? `
+      <button onclick="updateRun('${p.id}',2)">+2</button>
+      <button onclick="updateRun('${p.id}',-3)">-3</button>
+    `
+    : "";
     table.innerHTML += `
       <tr>
         <td>${i + 1}</td>

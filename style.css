@@ -180,6 +180,19 @@ td button {
   text-decoration: none;
   margin: 10px 0;
 }
+#appInfo {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  z-index: 9999;
+  font-family: Arial, sans-serif;
+  text-align: right;
+}
 /* MOBILE */
 @media (max-width: 600px) {
   table { width: 95%; }

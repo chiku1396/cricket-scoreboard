@@ -50,7 +50,7 @@ window.toggleLogin = () => {
 
 /* AUTH */
 onAuthStateChanged(auth, async (user) => {
-  admin = !!user;
+  admin = user ? true : false;  
 
   const dateInput = document.getElementById("date");
 
@@ -90,6 +90,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   renderTable(playersCache, admin);
+  console.log("Render → isAdmin =", isAdmin);
 });
 window.resetAwards = async function () {
   if (!admin) return;

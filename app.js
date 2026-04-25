@@ -243,17 +243,27 @@ window.updateRun = async (id, val) => {
 
   const matchRef = doc(db, "matches", date);
 
-  const updatedPlayers = playersCache.map(p =>
-    p.id === id ? { ...p, runs: p.runs + val } : p
-  );
-
-  await updateDoc(matchRef, {
-    players: updatedPlayers
+  const updatedPlayers = playersCache.map(p => {
+    if (p.id === id) {
+      return {
+        ...p,
+        runs: Number(p.runs || 0) + Number(val)
+      };
+    }
+    return p;
   });
 
-  // update local cache instantly
-  playersCache = updatedPlayers;
-  renderTable(playersCache, admin);
+  try {
+    await updateDoc(matchRef, {
+      players: updatedPlayers
+    });
+
+    playersCache = updatedPlayers;
+    renderTable(playersCache, admin);
+
+  } catch (err) {
+    console.error("Update run failed:", err);
+  }
 };
 
 /* AWARDS */
@@ -314,7 +324,11 @@ window.saveMatch = async function () {
     const awardSnap = await getDoc(awardRef);
     const awards = awardSnap.exists() ? awardSnap.data().list || [] : [];
 
-    const players = playersCache;
+    const players = playersCache.map(p => ({
+  id: p.id,
+  name: p.name,
+  runs: Number(p.runs || 0)
+}));
 
 await setDoc(doc(db, "matches", date), {
   date,
@@ -408,7 +422,11 @@ window.loadMatchByDate = async function (date) {
 
   const data = snap.data();
   // 🔥 IMPORTANT: set date-wise players
-  playersCache = data.players || [];
+  playersCache = (data.players || []).map(p => ({
+  id: p.id,
+  name: p.name,
+  runs: Number(p.runs || 0)
+}));
 
   // 🏆 winner
   if (data.winner) {

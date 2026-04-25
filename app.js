@@ -47,9 +47,40 @@ window.toggleLogin = () => {
   loginPopup.style.display =
     loginPopup.style.display === "block" ? "none" : "block";
 };
+async function initializeTodayFromYesterday(todayDate) {
 
+  const todayRef = doc(db, "matches", todayDate);
+  const todaySnap = await getDoc(todayRef);
+
+  // ❌ if today already exists → do nothing
+  if (todaySnap.exists()) return;
+
+  // 📅 calculate yesterday
+  const d = new Date(todayDate);
+  d.setDate(d.getDate() - 1);
+
+  const y = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+  const ySnap = await getDoc(doc(db, "matches", y));
+
+  if (!ySnap.exists()) return;
+
+  const yData = ySnap.data();
+
+  // 🔁 create today using yesterday data
+  await setDoc(todayRef, {
+    date: todayDate,
+    winner: "",
+    players: yData.players || [],
+    awards: [],
+    timestamp: Date.now(),
+    carriedFrom: y
+  });
+
+  console.log("✅ Carry forward done from:", y);
+}
 /* AUTH */
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
   admin = !!user;
 
   adminBtn.style.display = user ? "none" : "block";
@@ -57,6 +88,29 @@ onAuthStateChanged(auth, user => {
 
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
   resetAwardsBtn.style.display = user ? "block" : "none";
+
+  const dateInput = document.getElementById("date");
+
+  if (admin) {
+    const today = getTodayDate();
+
+    // 🔒 lock date
+    dateInput.value = today;
+    dateInput.disabled = true;
+
+    // 🔥 carry forward
+    await initializeTodayFromYesterday(today);
+
+    // 🔥 load today's match (which already has yesterday data)
+    loadMatchByDate(today);
+
+  } else {
+    // 👥 normal user
+    dateInput.disabled = false;
+
+    // default load today (or keep existing)
+    loadMatchByDate(dateInput.value);
+  }
 
   renderTable(playersCache, admin);
 });
@@ -278,6 +332,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (dateEl) {
     dateEl.addEventListener("change", (e) => {
+      if (admin) return; // ❌ block admin change
       loadMatchByDate(e.target.value);
     });
   }

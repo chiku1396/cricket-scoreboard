@@ -90,8 +90,6 @@ onAuthStateChanged(auth, async user => {
   resetAwardsBtn.style.display = user ? "block" : "none";
 
   const dateInput = document.getElementById("date");
-  const today = getTodayDate();
-
   if (!dateInput) return;
 
   // ✅ ALWAYS set today
@@ -99,13 +97,14 @@ onAuthStateChanged(auth, async user => {
 
   if (admin) {
     // 🔒 lock date
+    const today = getTodayDate();
     dateInput.disabled = true;
-
+    dateInput.value = today;
     // 🔁 carry forward
     await initializeTodayFromYesterday(today);
 
     // 🔥 ALWAYS load today (which has yesterday data)
-    await loadMatchByDate(today);
+    //await loadMatchByDate(today);
 
   } else {
     // 👥 normal user
@@ -343,31 +342,31 @@ window.saveMatch = async function () {
 };
 
 /* DATE HELPERS */
-function setTodayDate() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+// function setTodayDate() {
+//   const d = new Date();
+//   const year = d.getFullYear();
+//   const month = String(d.getMonth() + 1).padStart(2, "0");
+//   const day = String(d.getDate()).padStart(2, "0");
 
-  const today = `${year}-${month}-${day}`;
+//   const today = `${year}-${month}-${day}`;
 
-  const dateInput = document.getElementById("date");
-  if (dateInput) dateInput.value = today;
-}
-// window.addEventListener("load", async () => {
 //   const dateInput = document.getElementById("date");
+//   if (dateInput) dateInput.value = today;
+// }
+window.addEventListener("load", async () => {
+  const dateInput = document.getElementById("date");
 
-//   const today = getTodayDate();
+  const today = getTodayDate();
 
-//   if (dateInput) {
-//     dateInput.value = today;
-//   }
+  if (dateInput) {
+    dateInput.value = today;
+  }
 
-//   // 👇 if NOT admin → normal load
-//   if (!admin) {
-//     loadMatchByDate(today);
-//   }
-// });
+  // 👇 if NOT admin → normal load
+  // if (!admin) {
+  //   loadMatchByDate(today);
+  // }
+});
 
 function getTodayDate() {
   const d = new Date();

@@ -90,26 +90,28 @@ onAuthStateChanged(auth, async user => {
   resetAwardsBtn.style.display = user ? "block" : "none";
 
   const dateInput = document.getElementById("date");
+  const today = getTodayDate();
+
+  if (!dateInput) return;
+
+  // ✅ ALWAYS set today
+  dateInput.value = today;
 
   if (admin) {
-    const today = getTodayDate();
-
     // 🔒 lock date
-    dateInput.value = today;
     dateInput.disabled = true;
 
-    // 🔥 carry forward
+    // 🔁 carry forward
     await initializeTodayFromYesterday(today);
 
-    // 🔥 load today's match (which already has yesterday data)
-    loadMatchByDate(today);
+    // 🔥 ALWAYS load today (which has yesterday data)
+    await loadMatchByDate(today);
 
   } else {
     // 👥 normal user
     dateInput.disabled = false;
 
-    // default load today (or keep existing)
-    loadMatchByDate(dateInput.value);
+    await loadMatchByDate(dateInput.value);
   }
 
   renderTable(playersCache, admin);
@@ -352,15 +354,20 @@ function setTodayDate() {
   const dateInput = document.getElementById("date");
   if (dateInput) dateInput.value = today;
 }
-window.addEventListener("load", () => {
-  setTodayDate();
+// window.addEventListener("load", async () => {
+//   const dateInput = document.getElementById("date");
 
-  const dateInput = document.getElementById("date");
+//   const today = getTodayDate();
 
-  if (dateInput && dateInput.value) {
-    loadMatchByDate(dateInput.value);
-  }
-});
+//   if (dateInput) {
+//     dateInput.value = today;
+//   }
+
+//   // 👇 if NOT admin → normal load
+//   if (!admin) {
+//     loadMatchByDate(today);
+//   }
+// });
 
 function getTodayDate() {
   const d = new Date();
@@ -382,10 +389,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
-window.onload = () => {
-  setTodayDate();
 
-};
 /* LOAD MATCH BY DATE */
 window.loadMatchByDate = async function (date) {
   if (!date) return;

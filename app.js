@@ -221,30 +221,25 @@ window.giveCaptainAward = async function (type, points) {
 };
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
-  if (!admin) return;
-
   const date = document.getElementById("date").value;
-  const ref = doc(db, "matches", date);
+  const matchRef = doc(db, "matches", date);
 
-  const snap = await getDoc(ref);
+  const snap = await getDoc(matchRef);
   if (!snap.exists()) return;
 
   const data = snap.data();
+  const players = data.players || [];
 
-  const players = (data.players || []).map(p => {
-    if (p.id === id) {
-      return {
-        ...p,
-        runs: (p.runs || 0) + val
-      };
-    }
-    return p;
+  const updatedPlayers = players.map(p =>
+    p.id === id ? { ...p, runs: p.runs + val } : p
+  );
+
+  await updateDoc(matchRef, {
+    players: updatedPlayers
   });
 
-  await updateDoc(ref, { players });
-
-  // 🔥 refresh UI
-  await loadMatchByDate(date);
+  // 🔥 refresh UI after update
+  loadMatchByDate(date);
 };
 
 /* AWARDS */
@@ -305,39 +300,15 @@ window.saveMatch = async function () {
     const awardSnap = await getDoc(awardRef);
     const awards = awardSnap.exists() ? awardSnap.data().list || [] : [];
 
-    // ✅ FIX: directly use playersCache (NO data variable)
-    const players = playersCache.map((p, index) => ({
-      id: p.id || `p${index}`,
+    const players = playersCache.map(p => ({
       name: p.name,
-      runs: p.runs || 0
+      runs: p.runs
     }));
-
-    await setDoc(doc(db, "matches", date), {
-      date,
-      winner,
-      players,
-      awards,
-      timestamp: Date.now()
-    }, { merge: true });
-
-    alert("Match saved successfully!");
-
-  } catch (err) {
-    console.error(err);
-    alert("Failed to save match");
-  }
-};
-
-const players = data.players || [];
 
 await setDoc(doc(db, "matches", date), {
   date,
   winner,
-  players: players.map((p, index) => ({
-    id: p.id || `p${index}`,
-    name: p.name,
-    runs: p.runs || 0
-  })),
+  players,
   awards,
   timestamp: Date.now()
 }, { merge: true });
@@ -426,7 +397,7 @@ window.loadMatchByDate = async function (date) {
 
   const data = snap.data();
   const players = data.players || [];
-  //renderTable(players, admin);
+  renderTable(players, admin);
 
   // 🏆 winner
   if (data.winner) {

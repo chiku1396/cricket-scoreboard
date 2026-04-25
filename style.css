@@ -1,5 +1,5 @@
 body {
-  font-family: 'Segoe UI';
+font-family: "Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", "Segoe UI", Arial, sans-serif;
   background: #0f172a;
   color: white;
   text-align: center;
@@ -10,7 +10,9 @@ h1 {
   color: #38bdf8;
 }
 
-
+td button:nth-child(1) { background: green; color: white; }   /* +2 */
+td button:nth-child(2) { background: orange; color: white; }  /* -3 */
+td button:nth-child(3) { background: red; color: white; }     /* -5 */
 /* 🏆 AWARD FEED */
 #awardFeed {
   background: #1e293b;
@@ -22,6 +24,8 @@ h1 {
   font-size: 14px;
   max-height: 150px;
   overflow-y: auto;
+  scrollbar-width: thin;
+
 }
 
 .top-bar {

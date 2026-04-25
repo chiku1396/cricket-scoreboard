@@ -62,7 +62,11 @@ onAuthStateChanged(auth, async (user) => {
   d.setDate(d.getDate() - 1);
 
   const yesterday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-
+if (admin) {
+  toggleAdminUI(true);   // ✅ SHOW ALL ADMIN CONTROLS
+} else {
+  toggleAdminUI(false);  // ❌ HIDE FOR VIEWER
+}
   if (admin) {
     // 🟢 ADMIN = LIVE MODE
     if (dateInput) dateInput.value = today;
@@ -335,6 +339,7 @@ function setTodayDate() {
   const dateInput = document.getElementById("date");
   if (dateInput) dateInput.value = today;
 }
+
 window.addEventListener("load", () => {
   setTodayDate();
 
@@ -344,6 +349,9 @@ window.addEventListener("load", () => {
     loadMatchByDate(dateInput.value);
     console.log("on load loadMatchByDate called");
   }
+  setTimeout(() => {
+    if (admin) toggleAdminUI(true);
+  }, 500);
 });
 
 function getTodayDate() {
@@ -371,6 +379,33 @@ window.onload = () => {
   setTodayDate();
 
 };
+function toggleAdminUI(show) {
+  const ids = [
+    "winCaptain",
+    "loseCaptain",
+    "batsman",
+    "bowler",
+    "catch",
+    "awardsBox",
+    "resetAwardsBtn"
+  ];
+
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    // 🔥 IMPORTANT: use correct display types
+    if (show) {
+      if (el.tagName === "SELECT") {
+        el.style.display = "inline-block";
+      } else {
+        el.style.display = "block";
+      }
+    } else {
+      el.style.display = "none";
+    }
+  });
+}
 /* LOAD MATCH BY DATE */
 window.loadMatchByDate = async function (date) {
   if (!date) return;

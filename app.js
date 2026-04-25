@@ -77,7 +77,7 @@ onAuthStateChanged(auth, async (user) => {
     const yesterday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
     // 🔥 Load yesterday data
-    loadMatchByDate(yesterday);
+    await loadMatchByDate(yesterday);
     console.log("yesterday loadMatchByDate called");
 
   } else {
@@ -140,7 +140,10 @@ onSnapshot(colRef, snap => {
     playersCache.push({ id: d.id, ...d.data() });
   });
 
-  renderTable(playersCache, admin);
+   // 🔥 always use latest admin value
+  setTimeout(() => {
+    renderTable(playersCache, admin);
+  }, 0);
 });
 
 function renderTable(players, isAdmin) {

@@ -133,18 +133,18 @@ window.resetAwards = async function () {
   }
 };
 /* PLAYERS */
-// onSnapshot(colRef, snap => {
-//   playersCache = [];
+onSnapshot(colRef, snap => {
+  playersCache = [];
 
-//   snap.forEach(d => {
-//     playersCache.push({ id: d.id, ...d.data() });
-//   });
+  snap.forEach(d => {
+    playersCache.push({ id: d.id, ...d.data() });
+  });
 
-//    // 🔥 always use latest admin value
-//   setTimeout(() => {
-//     renderTable(playersCache, admin);
-//   }, 0);
-// });
+   // 🔥 always use latest admin value
+  setTimeout(() => {
+    renderTable(playersCache, admin);
+  }, 0);
+});
 
 function renderTable(players, isAdmin) {
   const winCaptain = document.getElementById("winCaptain");
@@ -182,7 +182,8 @@ function renderTable(players, isAdmin) {
 
     const actions = isAdmin
       ? `
-        <button onclick="updateRun('${p.id}',-2)">-2</button>
+        <button onclick="updateRun('${p.id}',2)">+2</button>
+        <button onclick="updateRun('${p.id}',-3)">-3</button>
         <button onclick="updateRun('${p.id}',-5)">-5</button>
       `
       : "";
@@ -238,32 +239,12 @@ window.giveCaptainAward = async function (type, points) {
 };
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
-  const date = document.getElementById("date").value;
-  if (!date) return;
+  const p = playersCache.find(x => x.id === id);
+  if (!p) return;
 
-  const matchRef = doc(db, "matches", date);
-
-  const updatedPlayers = playersCache.map(p => {
-    if (p.id === id) {
-      return {
-        ...p,
-        runs: Number(p.runs || 0) + Number(val)
-      };
-    }
-    return p;
+  await updateDoc(doc(db, "players", id), {
+    runs: p.runs + val
   });
-
-  try {
-    await updateDoc(matchRef, {
-      players: updatedPlayers
-    });
-
-    playersCache = updatedPlayers;
-    renderTable(playersCache, admin);
-
-  } catch (err) {
-    console.error("Update run failed:", err);
-  }
 };
 
 /* AWARDS */
@@ -325,10 +306,9 @@ window.saveMatch = async function () {
     const awards = awardSnap.exists() ? awardSnap.data().list || [] : [];
 
     const players = playersCache.map(p => ({
-  id: p.id,
-  name: p.name,
-  runs: Number(p.runs || 0)
-}));
+      name: p.name,
+      runs: p.runs
+    }));
 
 await setDoc(doc(db, "matches", date), {
   date,
@@ -421,12 +401,6 @@ window.loadMatchByDate = async function (date) {
   }
 
   const data = snap.data();
-  // 🔥 IMPORTANT: set date-wise players
-  playersCache = (data.players || []).map(p => ({
-  id: p.id,
-  name: p.name,
-  runs: Number(p.runs || 0)
-}));
 
   // 🏆 winner
   if (data.winner) {
@@ -438,7 +412,8 @@ window.loadMatchByDate = async function (date) {
   data.players?.forEach((p, i) => {
     const actions = admin
     ? `
-      <button onclick="updateRun('${p.id}',-2)">-2</button>
+      <button onclick="updateRun('${p.id}',2)">+2</button>
+      <button onclick="updateRun('${p.id}',-3)">-3</button>
       <button onclick="updateRun('${p.id}',-5)">-5</button>
     `
     : "";
@@ -452,36 +427,34 @@ window.loadMatchByDate = async function (date) {
     `;
   });
 
-    // 🎖 awards
-    data.awards?.forEach(a => {
-      const div = document.createElement("div");
-      div.innerText = a;
-      feed.appendChild(div);
-    });
-    // 📂 show uploaded file
-    if (data.fileBase64 && data.fileType && data.fileType.includes("image")) {
-      const div = document.createElement("div");
-      div.style.marginTop = "10px";
-
-      div.innerHTML = `
-      <button onclick="openImagePreview('${data.fileBase64}')" 
-        style="
-          padding:10px 15px;
-          border:none;
-          border-radius:8px;
-          background:#007bff;
-          color:white;
-          cursor:pointer;
-          font-weight:bold;
-        ">
-        🏏 View Scorecard
-      </button>
-    `;
+  // 🎖 awards
+  data.awards?.forEach(a => {
+    const div = document.createElement("div");
+    div.innerText = a;
     feed.appendChild(div);
-  }
-  renderTable(playersCache, admin);
-};
+  });
+  // 📂 show uploaded file
+if (data.fileBase64 && data.fileType && data.fileType.includes("image")) {
+  const div = document.createElement("div");
+  div.style.marginTop = "10px";
 
+  div.innerHTML = `
+    <button onclick="openImagePreview('${data.fileBase64}')" 
+      style="
+        padding:10px 15px;
+        border:none;
+        border-radius:8px;
+        background:#007bff;
+        color:white;
+        cursor:pointer;
+        font-weight:bold;
+      ">
+      🏏 View Scorecard
+    </button>
+  `;
+  feed.appendChild(div);
+}
+};
 window.openImagePreview = function (src) {
   let overlay = document.createElement("div");
 

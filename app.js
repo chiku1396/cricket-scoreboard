@@ -433,4 +433,44 @@ window.loadMatchByDate = async function (date) {
     div.innerText = a;
     feed.appendChild(div);
   });
+  // 📂 show uploaded file
+if (data.fileBase64) {
+  const div = document.createElement("div");
+  div.style.marginTop = "10px";
+
+  if (data.fileType && data.fileType.includes("image")) {
+    div.innerHTML = `
+      <p>📷 Uploaded File:</p>
+      <img src="${data.fileBase64}" style="max-width:200px; border-radius:8px;" />
+    `;
+  } else {
+    div.innerHTML = `
+      <p>📄 Uploaded File:</p>
+      <a href="${data.fileBase64}" target="_blank">Open File</a>
+    `;
+  }
+
+  feed.appendChild(div);
+}
+};
+window.uploadFile = async function () {
+  const file = document.getElementById("fileInput").files[0];
+  if (!file) return alert("Select file");
+
+  const reader = new FileReader();
+
+  reader.onload = async function () {
+    const base64 = reader.result;
+
+    const date = document.getElementById("date").value;
+
+    await setDoc(doc(db, "matches", date), {
+      fileBase64: base64,
+      fileType: file.type
+    }, { merge: true });
+
+    alert("Uploaded!");
+  };
+
+  reader.readAsDataURL(file);
 };

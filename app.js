@@ -422,7 +422,7 @@ window.loadMatchByDate = async function (date) {
         <td>${i + 1}</td>
         <td>${p.name}</td>
         <td>${p.runs}</td>
-        <td></td>
+        ${admin ? `<td>${actions}</td>` : ""}
       </tr>
     `;
   });

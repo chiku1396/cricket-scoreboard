@@ -183,7 +183,7 @@ input, select {
 #appInfo {
   position: fixed;
   top: 12px;
-  right: 12px;
+  left: 12px;
   background: rgba(56, 189, 248, 0.12);
   backdrop-filter: blur(14px);
   color: #38bdf8;

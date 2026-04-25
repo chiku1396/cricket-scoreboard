@@ -29,7 +29,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-
+overlay.style.transition = "0.3s";
 const colRef = collection(db, "players");
 
 let admin = false;
@@ -440,18 +440,36 @@ if (data.fileBase64) {
 
   if (data.fileType && data.fileType.includes("image")) {
     div.innerHTML = `
-      <p>📷 Uploaded File:</p>
-      <img src="${data.fileBase64}" style="max-width:200px; border-radius:8px;" />
-    `;
-  } else {
-    div.innerHTML = `
-      <p>📄 Uploaded File:</p>
-      <a href="${data.fileBase64}" target="_blank">Open File</a>
-    `;
-  }
-
+  <h3>📷 Match Image</h3>
+  <img src="${data.fileBase64}"
+       onclick="openImagePreview('${data.fileBase64}')"
+       style="max-width:90%; border-radius:10px; margin-top:10px; cursor:pointer;" />
+`;
+  } 
   feed.appendChild(div);
 }
+};
+window.openImagePreview = function (src) {
+  let overlay = document.createElement("div");
+
+  overlay.style.position = "fixed";
+  overlay.style.top = 0;
+  overlay.style.left = 0;
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.background = "rgba(0,0,0,0.9)";
+  overlay.style.display = "flex";
+  overlay.style.justifyContent = "center";
+  overlay.style.alignItems = "center";
+  overlay.style.zIndex = "9999";
+
+  overlay.innerHTML = `
+    <img src="${src}" style="max-width:95%; max-height:95%; border-radius:10px;" />
+  `;
+
+  overlay.onclick = () => overlay.remove();
+
+  document.body.appendChild(overlay);
 };
 window.uploadFile = async function () {
   const file = document.getElementById("fileInput").files[0];

@@ -114,43 +114,43 @@ onAuthStateChanged(auth, async user => {
 
   renderTable(playersCache, admin);
 });
-window.resetAwards = async function () {
-  if (!admin) return;
+// window.resetAwards = async function () {
+//   if (!admin) return;
 
-  try {
-    let errors = [];
+//   try {
+//     let errors = [];
 
-    // 1️⃣ Reset awards
-    try {
-      await setDoc(awardRef, { list: [] });
-    } catch (e) {
-      errors.push("awards");
-      console.error("Awards reset error:", e);
-    }
+//     // 1️⃣ Reset awards
+//     try {
+//       await setDoc(awardRef, { list: [] });
+//     } catch (e) {
+//       errors.push("awards");
+//       console.error("Awards reset error:", e);
+//     }
 
-    // 2️⃣ Reset winner
-    try {
-      await setDoc(winnerRef, { winner: "" });
-    } catch (e) {
-      errors.push("winner");
-      console.error("Winner reset error:", e);
-    }
+//     // 2️⃣ Reset winner
+//     try {
+//       await setDoc(winnerRef, { winner: "" });
+//     } catch (e) {
+//       errors.push("winner");
+//       console.error("Winner reset error:", e);
+//     }
 
-    // 3️⃣ UI clear (always safe)
-    document.getElementById("awardFeed").innerHTML = "";
+//     // 3️⃣ UI clear (always safe)
+//     document.getElementById("awardFeed").innerHTML = "";
 
-    // 4️⃣ Show correct message
-    if (errors.length > 0) {
-      alert("Reset completed with minor issues: " + errors.join(", "));
-    } else {
-      alert("Reset successful");
-    }
+//     // 4️⃣ Show correct message
+//     if (errors.length > 0) {
+//       alert("Reset completed with minor issues: " + errors.join(", "));
+//     } else {
+//       alert("Reset successful");
+//     }
 
-  } catch (err) {
-    console.error(err);
-    alert("Reset failed completely");
-  }
-};
+//   } catch (err) {
+//     console.error(err);
+//     alert("Reset failed completely");
+//   }
+// };
 window.resetScore = async function () {
   if (!admin) return alert("Only admin can reset score");
 

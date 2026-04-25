@@ -150,6 +150,12 @@ function renderTable(players, isAdmin) {
 
   if (!table || !batsman || !bowler || !catcher) return;
 
+  // 🔥 Show / Hide Action column header
+  const actionHeader = document.getElementById("actionHeader");
+  if (actionHeader) {
+    actionHeader.style.display = isAdmin ? "table-cell" : "none";
+  }
+
   batsman.innerHTML =
   bowler.innerHTML =
   catcher.innerHTML =

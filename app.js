@@ -68,7 +68,7 @@ onAuthStateChanged(auth, async (user) => {
     if (dateInput) dateInput.value = today;
 
     // ❌ Hide date picker
-    if (dateInput) dateInput.style.display = "none";
+    //if (dateInput) dateInput.style.display = "none";
 
     // 📅 Calculate yesterday
     const d = new Date(today);
@@ -309,7 +309,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (dateEl) {
     dateEl.addEventListener("change", (e) => {
-      if (admin) return;
+      //if (admin) return;
       loadMatchByDate(e.target.value);
     });
   }

@@ -233,14 +233,17 @@ window.updateRun = async (id, val) => {
 
   const players = (data.players || []).map(p => {
     if (p.id === id) {
-      return { ...p, runs: p.runs + val };
+      return {
+        ...p,
+        runs: (p.runs || 0) + val
+      };
     }
     return p;
   });
 
   await updateDoc(ref, { players });
 
-  // 🔥 IMPORTANT: reload for admin sync
+  // 🔥 refresh UI
   await loadMatchByDate(date);
 };
 
@@ -302,15 +305,22 @@ window.saveMatch = async function () {
     const awardSnap = await getDoc(awardRef);
     const awards = awardSnap.exists() ? awardSnap.data().list || [] : [];
 
-    const players = playersCache.map(p => ({
-      name: p.name,
-      runs: p.runs
-    }));
+players: playersCache.map((p, index) => ({
+  id: p.id || `p${index}`,
+  name: p.name,
+  runs: p.runs || 0
+}))
+
+const players = data.players || [];
 
 await setDoc(doc(db, "matches", date), {
   date,
   winner,
-  players,
+  players: players.map((p, index) => ({
+    id: p.id || `p${index}`,
+    name: p.name,
+    runs: p.runs || 0
+  })),
   awards,
   timestamp: Date.now()
 }, { merge: true });
@@ -399,7 +409,7 @@ window.loadMatchByDate = async function (date) {
 
   const data = snap.data();
   const players = data.players || [];
-  renderTable(players, admin);
+  //renderTable(players, admin);
 
   // 🏆 winner
   if (data.winner) {

@@ -221,6 +221,7 @@ window.giveCaptainAward = async function (type, points) {
 };
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
+  console.log("RUN UPDATE:", id, val);
   const date = document.getElementById("date").value;
   const matchRef = doc(db, "matches", date);
 

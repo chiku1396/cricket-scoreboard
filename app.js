@@ -47,40 +47,9 @@ window.toggleLogin = () => {
   loginPopup.style.display =
     loginPopup.style.display === "block" ? "none" : "block";
 };
-async function initializeTodayFromYesterday(todayDate) {
 
-  const todayRef = doc(db, "matches", todayDate);
-  const todaySnap = await getDoc(todayRef);
-
-  // ❌ if today already exists → do nothing
-  if (todaySnap.exists()) return;
-
-  // 📅 calculate yesterday
-  const d = new Date(todayDate);
-  d.setDate(d.getDate() - 1);
-
-  const y = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-
-  const ySnap = await getDoc(doc(db, "matches", y));
-
-  if (!ySnap.exists()) return;
-
-  const yData = ySnap.data();
-
-  // 🔁 create today using yesterday data
-  await setDoc(todayRef, {
-    date: todayDate,
-    winner: "",
-    players: yData.players || [],
-    awards: [],
-    timestamp: Date.now(),
-    carriedFrom: y
-  });
-
-  console.log("✅ Carry forward done from:", y);
-}
 /* AUTH */
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, user => {
   admin = !!user;
 
   adminBtn.style.display = user ? "none" : "block";
@@ -89,112 +58,43 @@ onAuthStateChanged(auth, async user => {
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
   resetAwardsBtn.style.display = user ? "block" : "none";
 
-  const dateInput = document.getElementById("date");
-  if (!dateInput) return;
-
-  // ✅ ALWAYS set today
-  dateInput.value = today;
-
-  if (admin) {
-    // 🔒 lock date
-    const today = getTodayDate();
-    dateInput.disabled = true;
-    dateInput.value = today;
-    // 🔁 carry forward
-    await initializeTodayFromYesterday(today);
-
-    // 🔥 ALWAYS load today (which has yesterday data)
-    //await loadMatchByDate(today);
-
-  } else {
-    // 👥 normal user
-    dateInput.disabled = false;
-
-    await loadMatchByDate(dateInput.value);
-  }
-
   renderTable(playersCache, admin);
 });
-// window.resetAwards = async function () {
-//   if (!admin) return;
-
-//   try {
-//     let errors = [];
-
-//     // 1️⃣ Reset awards
-//     try {
-//       await setDoc(awardRef, { list: [] });
-//     } catch (e) {
-//       errors.push("awards");
-//       console.error("Awards reset error:", e);
-//     }
-
-//     // 2️⃣ Reset winner
-//     try {
-//       await setDoc(winnerRef, { winner: "" });
-//     } catch (e) {
-//       errors.push("winner");
-//       console.error("Winner reset error:", e);
-//     }
-
-//     // 3️⃣ UI clear (always safe)
-//     document.getElementById("awardFeed").innerHTML = "";
-
-//     // 4️⃣ Show correct message
-//     if (errors.length > 0) {
-//       alert("Reset completed with minor issues: " + errors.join(", "));
-//     } else {
-//       alert("Reset successful");
-//     }
-
-//   } catch (err) {
-//     console.error(err);
-//     alert("Reset failed completely");
-//   }
-// };
-window.resetScore = async function () {
-  if (!admin) return alert("Only admin can reset score");
-
-  const today = document.getElementById("date").value;
+window.resetAwards = async function () {
+  if (!admin) return;
 
   try {
-    // 📅 get yesterday
-    const d = new Date(today);
-    d.setDate(d.getDate() - 1);
+    let errors = [];
 
-    const y = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-
-    const ySnap = await getDoc(doc(db, "matches", y));
-
-    if (!ySnap.exists()) {
-      alert("Yesterday data not found");
-      return;
+    // 1️⃣ Reset awards
+    try {
+      await setDoc(awardRef, { list: [] });
+    } catch (e) {
+      errors.push("awards");
+      console.error("Awards reset error:", e);
     }
 
-    const yData = ySnap.data();
-
-    // 🔁 reset players score
-    for (let p of playersCache) {
-      const old = yData.players.find(x => x.name === p.name);
-
-      if (old) {
-        await updateDoc(doc(db, "players", p.id), {
-          runs: old.runs
-        });
-      }
+    // 2️⃣ Reset winner
+    try {
+      await setDoc(winnerRef, { winner: "" });
+    } catch (e) {
+      errors.push("winner");
+      console.error("Winner reset error:", e);
     }
 
-    // 🧹 clear awards
-    await setDoc(awardRef, { list: [] });
+    // 3️⃣ UI clear (always safe)
+    document.getElementById("awardFeed").innerHTML = "";
 
-    // 🧹 clear winner
-    await setDoc(winnerRef, { winner: "" });
-
-    alert("Score reset to yesterday!");
+    // 4️⃣ Show correct message
+    if (errors.length > 0) {
+      alert("Reset completed with minor issues: " + errors.join(", "));
+    } else {
+      alert("Reset successful");
+    }
 
   } catch (err) {
     console.error(err);
-    alert("Reset failed");
+    alert("Reset failed completely");
   }
 };
 /* PLAYERS */
@@ -342,30 +242,25 @@ window.saveMatch = async function () {
 };
 
 /* DATE HELPERS */
-// function setTodayDate() {
-//   const d = new Date();
-//   const year = d.getFullYear();
-//   const month = String(d.getMonth() + 1).padStart(2, "0");
-//   const day = String(d.getDate()).padStart(2, "0");
+function setTodayDate() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
 
-//   const today = `${year}-${month}-${day}`;
+  const today = `${year}-${month}-${day}`;
 
-//   const dateInput = document.getElementById("date");
-//   if (dateInput) dateInput.value = today;
-// }
-window.addEventListener("load", async () => {
+  const dateInput = document.getElementById("date");
+  if (dateInput) dateInput.value = today;
+}
+window.addEventListener("load", () => {
+  setTodayDate();
+
   const dateInput = document.getElementById("date");
 
-  const today = getTodayDate();
-
-  if (dateInput) {
-    dateInput.value = today;
+  if (dateInput && dateInput.value) {
+    loadMatchByDate(dateInput.value);
   }
-
-  // 👇 if NOT admin → normal load
-  // if (!admin) {
-  //   loadMatchByDate(today);
-  // }
 });
 
 function getTodayDate() {
@@ -383,12 +278,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (dateEl) {
     dateEl.addEventListener("change", (e) => {
-      if (admin) return; // ❌ block admin change
       loadMatchByDate(e.target.value);
     });
   }
 });
+window.onload = () => {
+  setTodayDate();
 
+};
 /* LOAD MATCH BY DATE */
 window.loadMatchByDate = async function (date) {
   if (!date) return;

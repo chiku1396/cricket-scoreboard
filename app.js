@@ -133,18 +133,18 @@ window.resetAwards = async function () {
   }
 };
 /* PLAYERS */
-onSnapshot(colRef, snap => {
-  playersCache = [];
+// onSnapshot(colRef, snap => {
+//   playersCache = [];
 
-  snap.forEach(d => {
-    playersCache.push({ id: d.id, ...d.data() });
-  });
+//   snap.forEach(d => {
+//     playersCache.push({ id: d.id, ...d.data() });
+//   });
 
-   // 🔥 always use latest admin value
-  setTimeout(() => {
-    renderTable(playersCache, admin);
-  }, 0);
-});
+//    // 🔥 always use latest admin value
+//   setTimeout(() => {
+//     renderTable(playersCache, admin);
+//   }, 0);
+// });
 
 function renderTable(players, isAdmin) {
   const winCaptain = document.getElementById("winCaptain");
@@ -239,12 +239,22 @@ window.giveCaptainAward = async function (type, points) {
 };
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
-  const p = playersCache.find(x => x.id === id);
-  if (!p) return;
+  const date = document.getElementById("date").value;
+  if (!date) return;
 
-  await updateDoc(doc(db, "players", id), {
-    runs: p.runs + val
+  const matchRef = doc(db, "matches", date);
+
+  const updatedPlayers = playersCache.map(p =>
+    p.id === id ? { ...p, runs: p.runs + val } : p
+  );
+
+  await updateDoc(matchRef, {
+    players: updatedPlayers
   });
+
+  // update local cache instantly
+  playersCache = updatedPlayers;
+  renderTable(playersCache, admin);
 };
 
 /* AWARDS */
@@ -305,10 +315,7 @@ window.saveMatch = async function () {
     const awardSnap = await getDoc(awardRef);
     const awards = awardSnap.exists() ? awardSnap.data().list || [] : [];
 
-    const players = playersCache.map(p => ({
-      name: p.name,
-      runs: p.runs
-    }));
+    const players = playersCache;
 
 await setDoc(doc(db, "matches", date), {
   date,
@@ -401,6 +408,8 @@ window.loadMatchByDate = async function (date) {
   }
 
   const data = snap.data();
+  // 🔥 IMPORTANT: set date-wise players
+  playersCache = data.players || [];
 
   // 🏆 winner
   if (data.winner) {
@@ -427,34 +436,36 @@ window.loadMatchByDate = async function (date) {
     `;
   });
 
-  // 🎖 awards
-  data.awards?.forEach(a => {
-    const div = document.createElement("div");
-    div.innerText = a;
-    feed.appendChild(div);
-  });
-  // 📂 show uploaded file
-if (data.fileBase64 && data.fileType && data.fileType.includes("image")) {
-  const div = document.createElement("div");
-  div.style.marginTop = "10px";
+    // 🎖 awards
+    data.awards?.forEach(a => {
+      const div = document.createElement("div");
+      div.innerText = a;
+      feed.appendChild(div);
+    });
+    // 📂 show uploaded file
+    if (data.fileBase64 && data.fileType && data.fileType.includes("image")) {
+      const div = document.createElement("div");
+      div.style.marginTop = "10px";
 
-  div.innerHTML = `
-    <button onclick="openImagePreview('${data.fileBase64}')" 
-      style="
-        padding:10px 15px;
-        border:none;
-        border-radius:8px;
-        background:#007bff;
-        color:white;
-        cursor:pointer;
-        font-weight:bold;
-      ">
-      🏏 View Scorecard
-    </button>
-  `;
-  feed.appendChild(div);
-}
+      div.innerHTML = `
+      <button onclick="openImagePreview('${data.fileBase64}')" 
+        style="
+          padding:10px 15px;
+          border:none;
+          border-radius:8px;
+          background:#007bff;
+          color:white;
+          cursor:pointer;
+          font-weight:bold;
+        ">
+        🏏 View Scorecard
+      </button>
+    `;
+    feed.appendChild(div);
+  }
+  renderTable(playersCache, admin);
 };
+
 window.openImagePreview = function (src) {
   let overlay = document.createElement("div");
 

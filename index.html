@@ -69,6 +69,22 @@
   </div>
 
   <div class="award-row">
+  <label>🏆 Winning Captain</label>
+  <select id="winCaptain"></select>
+  <button onclick="giveCaptainAward('winCaptain',1)">+1</button>
+  <button onclick="giveCaptainAward('winCaptain',2)">+2</button>
+  <button onclick="giveCaptainAward('winCaptain',3)">+3</button>
+</div>
+
+<div class="award-row">
+  <label>😞 Losing Captain</label>
+  <select id="loseCaptain"></select>
+  <button onclick="giveCaptainAward('loseCaptain',-1)">-1</button>
+  <button onclick="giveCaptainAward('loseCaptain',-2)">-2</button>
+  <button onclick="giveCaptainAward('loseCaptain',-3)">-3</button>
+</div>
+
+  <div class="award-row">
     <button id="resetAwardsBtn" onclick="resetAwards()" style="display:none; background:red; color:white;">
       Reset Awards
     </button>

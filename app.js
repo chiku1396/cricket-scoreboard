@@ -147,6 +147,13 @@ onSnapshot(colRef, snap => {
 });
 
 function renderTable(players, isAdmin) {
+  const winCaptain = document.getElementById("winCaptain");
+  const loseCaptain = document.getElementById("loseCaptain");
+  if (winCaptain && loseCaptain) {
+  winCaptain.innerHTML =
+  loseCaptain.innerHTML =
+    `<option disabled selected>Select</option>`;
+  }
   const table = document.getElementById("table");
   table.innerHTML = "";
 
@@ -177,6 +184,7 @@ function renderTable(players, isAdmin) {
       ? `
         <button onclick="updateRun('${p.id}',2)">+2</button>
         <button onclick="updateRun('${p.id}',-3)">-3</button>
+        <button onclick="updateRun('${p.id}',-3)">-5</button>
       `
       : "";
 
@@ -193,9 +201,42 @@ function renderTable(players, isAdmin) {
     batsman.innerHTML += opt;
     bowler.innerHTML += opt;
     catcher.innerHTML += opt;
+    if (winCaptain && loseCaptain) {
+    const opt = `<option value="${p.id}">${p.name}</option>`;
+    winCaptain.innerHTML += opt;
+    loseCaptain.innerHTML += opt;
+    }
   });
 }
+window.giveCaptainAward = async function (type, points) {
+  const id = document.getElementById(type).value;
+  if (!id) return;
 
+  const p = playersCache.find(x => x.id === id);
+  if (!p) return;
+
+  // ➕ / ➖ update runs
+  await updateDoc(doc(db, "players", id), {
+    runs: p.runs + points
+  });
+
+  // 📥 get existing awards
+  const snap = await getDoc(awardRef);
+  let list = snap.exists() ? snap.data().list || [] : [];
+
+  // 🏷 updated label (your requirement)
+  const label =
+    type === "winCaptain"
+      ? "🏆 Winning Captain run distribution"
+      : "😞 Losing Captain run distribution";
+
+  // ✅ FIX sign display
+  const sign = points > 0 ? `+${points}` : `${points}`;
+
+  list.push(`${label}: ${p.name} ${sign}`);
+
+  await setDoc(awardRef, { list });
+};
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
   const p = playersCache.find(x => x.id === id);
@@ -373,6 +414,7 @@ window.loadMatchByDate = async function (date) {
     ? `
       <button onclick="updateRun('${p.id}',2)">+2</button>
       <button onclick="updateRun('${p.id}',-3)">-3</button>
+      <button onclick="updateRun('${p.id}',-3)">-5</button>
     `
     : "";
     table.innerHTML += `

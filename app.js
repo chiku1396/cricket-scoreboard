@@ -185,7 +185,7 @@ function renderTable(players, isAdmin) {
         <td>${i + 1}</td>
         <td>${p.name}</td>
         <td>${p.runs}</td>
-        <td>${actions}</td>
+        ${isAdmin ? `<td>${actions}</td>` : ""}
       </tr>
     `;
 

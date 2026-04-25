@@ -49,14 +49,45 @@ window.toggleLogin = () => {
 };
 
 /* AUTH */
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async (user) => {
   admin = !!user;
 
+  const dateInput = document.getElementById("date");
+
+  // Toggle buttons
   adminBtn.style.display = user ? "none" : "block";
   logoutBtn.style.display = user ? "block" : "none";
 
   document.getElementById("awardsBox").style.display = user ? "block" : "none";
   resetAwardsBtn.style.display = user ? "block" : "none";
+
+  const today = getTodayDate();
+
+  if (admin) {
+    // ✅ Set today internally
+    if (dateInput) dateInput.value = today;
+
+    // ❌ Hide date picker
+    if (dateInput) dateInput.style.display = "none";
+
+    // 📅 Calculate yesterday
+    const d = new Date(today);
+    d.setDate(d.getDate() - 1);
+
+    const yesterday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+    // 🔥 Load yesterday data
+    loadMatchByDate(yesterday);
+
+  } else {
+    // 👤 Normal user
+    if (dateInput) {
+      dateInput.style.display = "block";
+      dateInput.value = today;
+    }
+
+    loadMatchByDate(today);
+  }
 
   renderTable(playersCache, admin);
 });
@@ -278,6 +309,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (dateEl) {
     dateEl.addEventListener("change", (e) => {
+      if (admin) return;
       loadMatchByDate(e.target.value);
     });
   }

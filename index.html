@@ -9,12 +9,12 @@
 <h1>🏏 Daily Run Scoreboard</h1>
 <!-- 📅 TOP BAR -->
 <div class="top-bar">
-  <p id="date"></p>
+  <input type="date" id="date" />
   <button id="adminBtn" onclick="toggleLogin()">Admin</button>
 </div>
 <h2 id="awardTitle">🏆 Awards</h2>
 
-
+<h2 id="winnerBanner"></h2>
 <!-- 🏆 AWARD FEED -->
 <div id="awardFeed" style="background:#1e293b; padding:10px; margin:10px auto; width:85%; border-radius:10px;"></div>
 
@@ -71,6 +71,9 @@
   <div class="award-row">
     <button id="resetAwardsBtn" onclick="resetAwards()" style="display:none; background:red; color:white;">
       Reset Awards
+    </button>
+    <button onclick="saveMatch()" style="background:gold; color:black; margin:10px;">
+  💾 Save Match
     </button>
   </div>
 

@@ -469,6 +469,35 @@ window.loadMatchByDate = async function (date) {
       </tr>
     `;
   });
+
+  // 🎖 awards
+  data.awards?.forEach(a => {
+    const div = document.createElement("div");
+    div.innerText = a;
+    feed.appendChild(div);
+  });
+  // 📂 show uploaded file
+if (data.fileBase64 && data.fileType && data.fileType.startsWith("image/")) {
+  const div = document.createElement("div");
+  div.style.marginTop = "10px";
+
+  const btn = document.createElement("button");
+  btn.innerText = "🏏 View Scorecard";
+
+  btn.style.padding = "10px 15px";
+  btn.style.border = "none";
+  btn.style.borderRadius = "8px";
+  btn.style.background = "#007bff";
+  btn.style.color = "white";
+  btn.style.cursor = "pointer";
+  btn.style.fontWeight = "bold";
+
+  btn.onclick = () => openImagePreview(data.fileBase64);
+
+  div.appendChild(btn);
+  feed.appendChild(div);
+}
+};
 onSnapshot(winnerRef, snap => {
   const banner = document.getElementById("winnerBanner");
   if (!banner) return;
@@ -494,34 +523,6 @@ onSnapshot(awardRef, snap => {
     feed.appendChild(div);
   });
 });
-  // 🎖 awards
-  data.awards?.forEach(a => {
-    const div = document.createElement("div");
-    div.innerText = a;
-    feed.appendChild(div);
-  });
-  // 📂 show uploaded file
-if (data.fileBase64 && data.fileType && data.fileType.includes("image")) {
-  const div = document.createElement("div");
-  div.style.marginTop = "10px";
-
-  div.innerHTML = `
-    <button onclick="openImagePreview('${data.fileBase64}')" 
-      style="
-        padding:10px 15px;
-        border:none;
-        border-radius:8px;
-        background:#007bff;
-        color:white;
-        cursor:pointer;
-        font-weight:bold;
-      ">
-      🏏 View Scorecard
-    </button>
-  `;
-  feed.appendChild(div);
-}
-};
 window.openImagePreview = function (src) {
   let overlay = document.createElement("div");
 
@@ -576,4 +577,7 @@ window.uploadFile = async function () {
   };
 
   reader.readAsDataURL(file);
+  if (admin) {
+  await loadMatchByDate(date);
+}
 };

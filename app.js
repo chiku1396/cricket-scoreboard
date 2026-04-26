@@ -264,20 +264,22 @@ window.giveSingleAward = async function (type, points) {
 };
 
 /* AWARD FEED */
-// onSnapshot(awardRef, snap => {
-//   const feed = document.getElementById("awardFeed");
-//   if (!feed) return;
+onSnapshot(awardRef, snap => {
+  const feed = document.getElementById("awardFeed");
+  if (!feed) return;
 
-//   feed.innerHTML = "";
+  feed.innerHTML = "";
 
-//   if (!snap.exists()) return;
+  if (!snap.exists()) return;
 
-//   snap.data().list.forEach(item => {
-//     const div = document.createElement("div");
-//     div.innerText = item;
-//     feed.appendChild(div);
-//   });
-// });
+  const list = snap.data().list || [];
+
+  list.forEach(item => {
+    const div = document.createElement("div");
+    div.innerText = item;
+    feed.appendChild(div);
+  });
+});
 
 function loadLivePlayers() {
   onSnapshot(colRef, snap => {
@@ -437,11 +439,11 @@ window.loadMatchByDate = async function (date) {
     playersCache = data.players || [];
   }
 
-  // 🏆 winner
-  if (data.winner) {
-    banner.style.display = "block";
-    banner.innerText = "🏆 Winner: " + data.winner;
-  }
+  // // 🏆 winner
+  // if (data.winner) {
+  //   banner.style.display = "block";
+  //   banner.innerText = "🏆 Winner: " + data.winner;
+  // }
 
   // 🏏 players
   data.players?.forEach((p, i) => {
@@ -544,3 +546,15 @@ window.uploadFile = async function () {
 
   reader.readAsDataURL(file);
 };
+onSnapshot(winnerRef, (snap) => {
+  const banner = document.getElementById("winnerBanner");
+  if (!banner) return;
+
+  if (snap.exists() && snap.data().winner) {
+    banner.style.display = "block";
+    banner.innerText = "🏆 Winner: " + snap.data().winner;
+  } else {
+    banner.style.display = "none";
+    banner.innerText = "";
+  }
+});

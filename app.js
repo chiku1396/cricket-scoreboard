@@ -170,8 +170,7 @@ function renderTable(players, isAdmin) {
 
     const actions = isAdmin
       ? `
-        <button onclick="updateRun('${p.id}',2)">+2</button>
-        <button onclick="updateRun('${p.id}',-3)">-3</button>
+        <button onclick="updateRun('${p.id}',-1)">-1</button>
         <button onclick="updateRun('${p.id}',-5)">-5</button>
       `
       : "";
@@ -448,8 +447,7 @@ window.loadMatchByDate = async function (date) {
   data.players?.forEach((p, i) => {
     const actions = admin
     ? `
-      <button onclick="updateRun('${p.id}',2)">+2</button>
-      <button onclick="updateRun('${p.id}',-3)">-3</button>
+      <button onclick="updateRun('${p.id}',-1)">-1</button>
       <button onclick="updateRun('${p.id}',-5)">-5</button>
     `
     : "";

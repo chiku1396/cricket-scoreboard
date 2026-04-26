@@ -223,6 +223,9 @@ window.giveCaptainAward = async function (type, points) {
   list.push(`${label}: ${p.name} ${sign}`);
 
   await setDoc(awardRef, { list });
+  if (admin) {
+  await loadMatchByDate(document.getElementById("date").value);
+}
 };
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
@@ -261,6 +264,9 @@ window.giveSingleAward = async function (type, points) {
   list.push(`${label}: ${p.name} +${points}`);
 
   await setDoc(awardRef, { list });
+  if (admin) {
+  await loadMatchByDate(document.getElementById("date").value);
+}
 };
 
 /* AWARD FEED */
@@ -317,6 +323,9 @@ await setDoc(doc(db, "matches", date), {
   awards,
   timestamp: Date.now()
 }, { merge: true });
+if (admin) {
+  await loadMatchByDate(date);
+}
 
     alert("Match saved successfully!");
 
@@ -460,7 +469,31 @@ window.loadMatchByDate = async function (date) {
       </tr>
     `;
   });
+onSnapshot(winnerRef, snap => {
+  const banner = document.getElementById("winnerBanner");
+  if (!banner) return;
 
+  const data = snap.exists() ? snap.data().winner : "";
+
+  if (data && admin) {
+    banner.style.display = "block";
+    banner.innerText = "🏆 Winner: " + data;
+  }
+});
+onSnapshot(awardRef, snap => {
+  const feed = document.getElementById("awardFeed");
+  if (!feed) return;
+
+  feed.innerHTML = "";
+
+  if (!snap.exists()) return;
+
+  snap.data().list.forEach(item => {
+    const div = document.createElement("div");
+    div.innerText = item;
+    feed.appendChild(div);
+  });
+});
   // 🎖 awards
   data.awards?.forEach(a => {
     const div = document.createElement("div");

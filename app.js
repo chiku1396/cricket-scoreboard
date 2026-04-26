@@ -424,9 +424,9 @@ window.loadMatchByDate = async function (date) {
   }
 
   table.innerHTML = "";
-  feed.innerHTML = "";
-  banner.style.display = "none";
-  banner.innerText = "";
+  // feed.innerHTML = "";
+  // banner.style.display = "none";
+  // banner.innerText = "";
 
   if (!snap.exists()) {
     table.innerHTML = "<tr><td colspan='4'>No match found</td></tr>";
@@ -491,6 +491,34 @@ if (data.fileBase64 && data.fileType && data.fileType.includes("image")) {
   feed.appendChild(div);
 }
 };
+onSnapshot(doc(db, "matches", document.getElementById("date").value), (snap) => {
+  if (!snap.exists()) return;
+
+  const data = snap.data();
+
+  // 🏆 winner
+  const banner = document.getElementById("winnerBanner");
+  if (data.winner) {
+    banner.style.display = "block";
+    banner.innerText = "🏆 Winner: " + data.winner;
+  }
+
+  // 🎖 awards + scorecard
+  const feed = document.getElementById("awardFeed");
+  feed.innerHTML = "";
+
+  data.awards?.forEach(a => {
+    const div = document.createElement("div");
+    div.innerText = a;
+    feed.appendChild(div);
+  });
+
+  if (data.fileBase64 && data.fileType?.includes("image")) {
+    const div = document.createElement("div");
+    div.innerHTML = `<button onclick="openImagePreview('${data.fileBase64}')">🏏 View Scorecard</button>`;
+    feed.appendChild(div);
+  }
+});
 window.openImagePreview = function (src) {
   let overlay = document.createElement("div");
 

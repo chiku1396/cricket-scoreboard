@@ -223,9 +223,6 @@ window.giveCaptainAward = async function (type, points) {
   list.push(`${label}: ${p.name} ${sign}`);
 
   await setDoc(awardRef, { list });
-  if (admin) {
-  await loadMatchByDate(document.getElementById("date").value);
-}
 };
 /* UPDATE RUN */
 window.updateRun = async (id, val) => {
@@ -264,9 +261,6 @@ window.giveSingleAward = async function (type, points) {
   list.push(`${label}: ${p.name} +${points}`);
 
   await setDoc(awardRef, { list });
-  if (admin) {
-  await loadMatchByDate(document.getElementById("date").value);
-}
 };
 
 /* AWARD FEED */
@@ -323,9 +317,6 @@ await setDoc(doc(db, "matches", date), {
   awards,
   timestamp: Date.now()
 }, { merge: true });
-if (admin) {
-  await loadMatchByDate(date);
-}
 
     alert("Match saved successfully!");
 
@@ -477,52 +468,27 @@ window.loadMatchByDate = async function (date) {
     feed.appendChild(div);
   });
   // 📂 show uploaded file
-if (data.fileBase64 && data.fileType && data.fileType.startsWith("image/")) {
+if (data.fileBase64 && data.fileType && data.fileType.includes("image")) {
   const div = document.createElement("div");
   div.style.marginTop = "10px";
 
-  const btn = document.createElement("button");
-  btn.innerText = "🏏 View Scorecard";
-
-  btn.style.padding = "10px 15px";
-  btn.style.border = "none";
-  btn.style.borderRadius = "8px";
-  btn.style.background = "#007bff";
-  btn.style.color = "white";
-  btn.style.cursor = "pointer";
-  btn.style.fontWeight = "bold";
-
-  btn.onclick = () => openImagePreview(data.fileBase64);
-
-  div.appendChild(btn);
+  div.innerHTML = `
+    <button onclick="openImagePreview('${data.fileBase64}')" 
+      style="
+        padding:10px 15px;
+        border:none;
+        border-radius:8px;
+        background:#007bff;
+        color:white;
+        cursor:pointer;
+        font-weight:bold;
+      ">
+      🏏 View Scorecard
+    </button>
+  `;
   feed.appendChild(div);
 }
 };
-onSnapshot(winnerRef, snap => {
-  const banner = document.getElementById("winnerBanner");
-  if (!banner) return;
-
-  const data = snap.exists() ? snap.data().winner : "";
-
-  if (data && admin) {
-    banner.style.display = "block";
-    banner.innerText = "🏆 Winner: " + data;
-  }
-});
-onSnapshot(awardRef, snap => {
-  const feed = document.getElementById("awardFeed");
-  if (!feed) return;
-
-  feed.innerHTML = "";
-
-  if (!snap.exists()) return;
-
-  snap.data().list.forEach(item => {
-    const div = document.createElement("div");
-    div.innerText = item;
-    feed.appendChild(div);
-  });
-});
 window.openImagePreview = function (src) {
   let overlay = document.createElement("div");
 
@@ -577,7 +543,4 @@ window.uploadFile = async function () {
   };
 
   reader.readAsDataURL(file);
-  if (admin) {
-  await loadMatchByDate(date);
-}
 };

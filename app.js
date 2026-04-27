@@ -172,6 +172,7 @@ function renderTable(players, isAdmin) {
       ? `
         <button onclick="updateRun('${p.id}',-1)">-1</button>
         <button onclick="updateRun('${p.id}',-5)">-5</button>
+        <button onclick="updateRun('${p.id}',+1)">+1</button>
       `
       : "";
 
@@ -451,6 +452,7 @@ window.loadMatchByDate = async function (date) {
     ? `
       <button onclick="updateRun('${p.id}',-1)">-1</button>
       <button onclick="updateRun('${p.id}',-5)">-5</button>
+      <button onclick="updateRun('${p.id}',+1)">+1</button>
     `
     : "";
     table.innerHTML += `
